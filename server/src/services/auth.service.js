@@ -29,7 +29,8 @@ export const setRefreshCookie = (res, token) => {
   res.cookie(REFRESH_COOKIE, token, {
     httpOnly: true,
     secure: env.cookieSecure,
-    sameSite: 'lax',
+    // Cross-site (Vercel → Render) requires SameSite=None + Secure
+    sameSite: env.cookieSecure ? 'none' : 'lax',
     path: '/api/auth',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
@@ -39,7 +40,7 @@ export const clearRefreshCookie = (res) => {
   res.clearCookie(REFRESH_COOKIE, {
     httpOnly: true,
     secure: env.cookieSecure,
-    sameSite: 'lax',
+    sameSite: env.cookieSecure ? 'none' : 'lax',
     path: '/api/auth',
   });
 };

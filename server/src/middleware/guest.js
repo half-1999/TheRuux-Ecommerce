@@ -11,8 +11,11 @@ export const resolveGuest = asyncHandler(async (req, res, next) => {
     token = crypto.randomUUID();
     res.cookie(GUEST_COOKIE, token, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.COOKIE_SECURE === 'true',
+      secure: process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production',
+      sameSite:
+        process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production'
+          ? 'none'
+          : 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000,
       path: '/',
     });

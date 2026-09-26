@@ -1,8 +1,8 @@
-# TheRuux ó MERN E-commerce
+# TheRuux ù MERN E-commerce
 
 Premium editorial streetwear ("Beyond Boundaries").
 
-**Stack:** MongoDB ∑ Express ∑ React (Vite) ∑ Node.js
+**Stack:** MongoDB ù Express ù React (Vite) ù Node.js
 
 ## Structure
 
@@ -15,11 +15,11 @@ docs/     # requirements (source of truth)
 
 ## Phase status
 
-- **Phase 1** ó Foundation
-- **Phase 2** ó Backend APIs + seed
-- **Phase 3** ó Storefront
-- **Phase 4** ó Admin ops panel
-- **Phase 5** ó Integrations (Razorpay webhook, email, Cloudinary, Sentry)
+- **Phase 1** ù Foundation
+- **Phase 2** ù Backend APIs + seed
+- **Phase 3** ù Storefront
+- **Phase 4** ù Admin ops panel
+- **Phase 5** ù Integrations (Razorpay webhook, email, Cloudinary, Sentry)
 
 ## Quick start
 
@@ -41,6 +41,13 @@ npm run dev
 ## Integrations
 
 Copy `server/.env.example` and `client/.env.example`. See [`docs/06-phase5-integrations.md`](docs/06-phase5-integrations.md) for Razorpay webhook setup, email providers, Cloudinary, and Sentry.
+
+## Deploy (Vercel + Render)
+
+See [`docs/07-deploy-vercel-render.md`](docs/07-deploy-vercel-render.md).
+
+- **Vercel Root Directory:** `client` ∑ Framework: **Vite** ∑ Output: `dist`
+- **Render Root Directory:** `server` ∑ Start: `npm start` ∑ then `npm run seed` once
 
 ## Docs
 

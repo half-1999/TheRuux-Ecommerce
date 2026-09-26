@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
+    "build": "node -e \"console.log('TheRuux API — no compile step')\"",
     "lint": "eslint src --max-warnings=0",
     "seed": "node src/scripts/seed.js",
     "test:api": "node src/scripts/smoke-api.js",
