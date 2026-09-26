@@ -1,0 +1,40 @@
+{
+  "name": "theruux-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "lint": "eslint src --max-warnings=0",
+    "seed": "node src/scripts/seed.js",
+    "test:api": "node src/scripts/smoke-api.js",
+    "verify:phase2": "node src/scripts/verify-phase2.js"
+  },
+  "dependencies": {
+    "@sentry/node": "^11.0.0",
+    "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.11.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.12.1",
+    "morgan": "^1.10.0",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.10",
+    "razorpay": "^2.9.8",
+    "resend": "^6.30.0",
+    "uuid": "^14.0.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.2",
+    "eslint": "^9.22.0",
+    "mongodb-memory-server": "^11.3.0",
+    "prettier": "^3.5.3"
+  }
+}
