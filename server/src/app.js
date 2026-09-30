@@ -31,10 +31,34 @@ export const createApp = () => {
 
   app.set('trust proxy', 1);
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
+  const allowedOrigins = new Set([
+    ...env.clientUrls.map((url) => new URL(url).origin),
+    'https://the-ruux-ecommerce.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:5174',
+  ]);
+
   app.use(
     cors({
-      origin: env.clientUrls.length === 1 ? env.clientUrls[0] : env.clientUrls,
+      origin(origin, callback) {
+        if (!origin) return callback(null, true);
+        let normalized = origin;
+        try {
+          normalized = new URL(origin).origin;
+        } catch {
+          /* keep raw */
+        }
+        const vercelPreview = /^https:\/\/the-ruux-ecommerce(?:-[a-z0-9-]+)?\.vercel\.app$/.test(
+          normalized,
+        );
+        if (allowedOrigins.has(normalized) || vercelPreview) return callback(null, true);
+        console.warn(`[cors] blocked origin: ${origin}`);
+        return callback(null, false);
+      },
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Guest-Token'],
     }),
   );
   app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
