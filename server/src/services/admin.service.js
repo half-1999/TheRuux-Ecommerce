@@ -13,7 +13,15 @@ import { slugify } from '../utils/slug.js';
 import { toMoney, formatMoney } from '../utils/money.js';
 import { primaryImage } from '../utils/serializers.js';
 import { env } from '../config/env.js';
-import { adjustStock, listInventory, getAdjustmentHistory } from './inventory.service.js';
+import {
+  adjustStock,
+  listInventory,
+  getAdjustmentHistory,
+  orderHoldsStock,
+  reserveOrderStock,
+  releaseOrderStock,
+} from './inventory.service.js';
+import { withTransaction } from '../utils/transaction.js';
 import { writeAudit } from '../middleware/audit.js';
 
 export const adminListProducts = async (query = {}) => {
@@ -354,23 +362,86 @@ export const adminMetrics = async () => {
   const settings = await Settings.findOne({ key: 'store' }).lean();
   const threshold = settings?.lowStockThreshold ?? env.lowStockThreshold;
 
-  const [ordersToday, revenueAgg, unfulfilledOrders, lowStockVariants, newCustomers7d] =
-    await Promise.all([
-      Order.countDocuments({ placedAt: { $gte: start }, paymentStatus: 'PAID' }),
-      Order.aggregate([
-        { $match: { placedAt: { $gte: start }, paymentStatus: 'PAID' } },
-        { $group: { _id: null, total: { $sum: '$grandTotal' } } },
-      ]),
-      Order.countDocuments({
-        status: { $in: ['PAID', 'PROCESSING'] },
-        paymentStatus: 'PAID',
-      }),
-      Variant.countDocuments({ stockQty: { $lte: threshold }, isActive: true }),
-      User.countDocuments({
-        role: 'customer',
-        createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-      }),
-    ]);
+  const since = new Date(start);
+  since.setDate(since.getDate() - 13);
+  const openStatuses = ['PENDING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED'];
+
+  const [
+    ordersToday,
+    revenueAgg,
+    unfulfilledOrders,
+    lowStockVariants,
+    newCustomers7d,
+    customers,
+    products,
+    daily,
+    statusCounts,
+    topProducts,
+    lowStockRows,
+  ] = await Promise.all([
+    Order.countDocuments({ placedAt: { $gte: start }, status: { $nin: ['CANCELLED'] } }),
+    Order.aggregate([
+      { $match: { placedAt: { $gte: start }, status: { $nin: ['CANCELLED', 'REFUNDED'] } } },
+      { $group: { _id: null, total: { $sum: '$grandTotal' } } },
+    ]),
+    Order.countDocuments({ status: { $in: openStatuses } }),
+    Variant.countDocuments({ stockQty: { $lte: threshold }, isActive: true }),
+    User.countDocuments({
+      role: 'customer',
+      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+    }),
+    User.countDocuments({ role: 'customer' }),
+    Product.countDocuments({ status: 'active' }),
+    Order.aggregate([
+      { $match: { placedAt: { $gte: since }, status: { $nin: ['CANCELLED'] } } },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$placedAt', timezone: 'Asia/Kolkata' },
+          },
+          orders: { $sum: 1 },
+          revenue: { $sum: '$grandTotal' },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]),
+    Order.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+    Order.aggregate([
+      { $match: { status: { $nin: ['CANCELLED', 'REFUNDED'] } } },
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: '$items.productName',
+          qty: { $sum: '$items.quantity' },
+          revenue: { $sum: '$items.lineTotal' },
+        },
+      },
+      { $sort: { qty: -1 } },
+      { $limit: 5 },
+    ]),
+    Variant.find({ isActive: true, stockQty: { $lte: threshold } })
+      .sort({ stockQty: 1 })
+      .limit(5)
+      .lean(),
+  ]);
+
+  const dayMap = Object.fromEntries(daily.map((row) => [row._id, row]));
+  const series = Array.from({ length: 14 }, (_, index) => {
+    const day = new Date(since);
+    day.setDate(since.getDate() + index);
+    const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+    const row = dayMap[key];
+    return {
+      date: key,
+      label: day.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+      orders: row?.orders || 0,
+      revenue: toMoney(row?.revenue || 0),
+    };
+  });
+
+  const productIds = [...new Set(lowStockRows.map((row) => String(row.productId)))];
+  const productDocs = await Product.find({ _id: { $in: productIds } }).select('name').lean();
+  const productNames = Object.fromEntries(productDocs.map((item) => [String(item._id), item.name]));
 
   return {
     ordersToday,
@@ -378,6 +449,23 @@ export const adminMetrics = async () => {
     unfulfilledOrders,
     lowStockVariants,
     newCustomers7d,
+    customers,
+    activeProducts: products,
+    series,
+    statusCounts: statusCounts.map((row) => ({ status: row._id, count: row.count })),
+    topProducts: topProducts.map((row) => ({
+      name: row._id,
+      qty: row.qty,
+      revenue: formatMoney(row.revenue),
+    })),
+    lowStock: lowStockRows.map((row) => ({
+      id: row._id.toString(),
+      sku: row.sku,
+      size: row.size,
+      colourName: row.colourName,
+      stockQty: row.stockQty,
+      productName: productNames[String(row.productId)] || '',
+    })),
   };
 };
 
@@ -393,51 +481,84 @@ export const adminListOrders = async (query = {}) => {
       id: o._id.toString(),
       orderNumber: o.orderNumber,
       email: o.email,
+      phone: o.phone || '',
       status: o.status,
       paymentStatus: o.paymentStatus,
+      paymentMethod: o.paymentMethod || (o.paymentStatus === 'PAID' ? 'razorpay' : ''),
+      shippingMethodId: o.shippingMethodId || '',
       grandTotal: formatMoney(o.grandTotal),
+      subtotal: formatMoney(o.subtotal),
+      shipping: formatMoney(o.shipping),
       placedAt: o.placedAt,
+      itemCount: (o.items || []).reduce((n, item) => n + item.quantity, 0),
+      products: (o.items || []).map((item) => item.productName).filter(Boolean),
     })),
   };
 };
 
+const ADMIN_ORDER_STATUSES = Object.keys(ORDER_TRANSITIONS);
+
 export const adminGetOrder = async (id) => {
   const order = await Order.findById(id).lean();
   if (!order) throw new AppError(404, 'NOT_FOUND', 'Order not found');
-  return order;
+  const variantIds = (order.items || []).map((item) => item.variantId).filter(Boolean);
+  const variants = variantIds.length
+    ? await Variant.find({ _id: { $in: variantIds } }).select('stockQty sku size colourName').lean()
+    : [];
+  const stockMap = Object.fromEntries(variants.map((variant) => [String(variant._id), variant]));
+  return {
+    ...order,
+    id: order._id.toString(),
+    transitions: ADMIN_ORDER_STATUSES.filter((status) => status !== order.status),
+    items: (order.items || []).map((item) => {
+      const live = stockMap[String(item.variantId)];
+      return {
+        ...item,
+        size: item.size || live?.size || '',
+        colourName: item.colourName || live?.colourName || '',
+        sku: item.sku || live?.sku || '',
+        stockQty: live ? live.stockQty : null,
+      };
+    }),
+  };
 };
 
 export const adminTransitionOrder = async (id, toStatus, adminId, meta = {}) => {
-  const order = await Order.findById(id);
-  if (!order) throw new AppError(404, 'NOT_FOUND', 'Order not found');
-
-  const allowed = ORDER_TRANSITIONS[order.status] || [];
-  if (!allowed.includes(toStatus)) {
-    throw new AppError(
-      409,
-      'INVALID_TRANSITION',
-      `Cannot transition from ${order.status} to ${toStatus}`,
-    );
+  if (!ADMIN_ORDER_STATUSES.includes(toStatus)) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'Unknown order status');
   }
 
-  // Payment capture uses dedicated payment flow; admin should not jump PENDING_PAYMENT → PAID
-  if (order.status === 'PENDING_PAYMENT' && toStatus === 'PAID') {
-    throw new AppError(
-      409,
-      'INVALID_TRANSITION',
-      'Use payment webhook/confirm to mark PAID',
-    );
-  }
+  const order = await withTransaction(async (session) => {
+    let query = Order.findById(id);
+    if (session) query = query.session(session);
+    const current = await query;
+    if (!current) throw new AppError(404, 'NOT_FOUND', 'Order not found');
 
-  order.status = toStatus;
-  if (meta.trackingNumber) order.trackingNumber = meta.trackingNumber;
-  if (meta.carrier) order.carrier = meta.carrier;
-  order.timeline.push({
-    status: toStatus,
-    note: meta.note || `Status → ${toStatus}`,
-    by: adminId,
+    if (orderHoldsStock(toStatus)) {
+      await reserveOrderStock(current, { session, reason: 'admin_status', adminId });
+    } else {
+      await releaseOrderStock(current, { session, reason: 'admin_status', adminId });
+    }
+
+    current.status = toStatus;
+    if (toStatus === 'PAID' || toStatus === 'COMPLETED') {
+      if (current.paymentStatus === 'PENDING' && current.paymentMethod === 'razorpay') {
+        current.paymentStatus = 'PAID';
+        current.paidAt = current.paidAt || new Date();
+      }
+    }
+    if (toStatus === 'REFUNDED') current.paymentStatus = 'REFUNDED';
+    if (meta.trackingNumber) current.trackingNumber = meta.trackingNumber;
+    if (meta.carrier) current.carrier = meta.carrier;
+    current.timeline.push({
+      status: toStatus,
+      note: meta.note || `Status → ${toStatus}`,
+      by: adminId,
+    });
+    await current.save(session ? { session } : undefined);
+    return current;
   });
-  await order.save();
+
   await writeAudit({
     adminId,
     action: 'transition',
@@ -459,7 +580,7 @@ export const adminTransitionOrder = async (id, toStatus, adminId, meta = {}) => 
     );
   }
 
-  return order;
+  return adminGetOrder(id);
 };
 
 export const adminListCustomers = async (q) => {
@@ -471,13 +592,22 @@ export const adminListCustomers = async (q) => {
     ];
   }
   const users = await User.find(filter).select('-passwordHash -refreshTokenHash').limit(100).lean();
+  const counts = users.length
+    ? await Order.aggregate([
+        { $match: { userId: { $in: users.map((user) => user._id) } } },
+        { $group: { _id: '$userId', count: { $sum: 1 } } },
+      ])
+    : [];
+  const countMap = Object.fromEntries(counts.map((row) => [String(row._id), row.count]));
   return {
     items: users.map((u) => ({
       id: u._id.toString(),
       name: u.name,
       email: u.email,
+      phone: u.phone || '',
       status: u.status,
       createdAt: u.createdAt,
+      orderCount: countMap[u._id.toString()] || 0,
     })),
   };
 };

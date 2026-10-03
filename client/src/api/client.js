@@ -81,6 +81,7 @@ export const wishlistApi = {
 };
 
 export const checkoutApi = {
+  options: () => api.get('/checkout/options'),
   preview: (payload) => api.post('/checkout/preview', payload, { guest: true }),
   create: (payload) => api.post('/checkout/create', payload, { guest: true }),
   confirmPayment: (payload) => api.post('/payments/confirm', payload),
@@ -132,6 +133,7 @@ export const adminApi = {
   collections: () => api.get('/admin/collections'),
   createCollection: (body) => api.post('/admin/collections', body),
   updateCollection: (id, body) => api.patch(`/admin/collections/${id}`, body),
+  deleteCollection: (id) => api.delete(`/admin/collections/${id}`),
   inventory: (params) => api.get(`/admin/inventory${q(params)}`),
   adjustInventory: (body) => api.post('/admin/inventory/adjust', body),
   inventoryHistory: (variantId) => api.get(`/admin/inventory/${variantId}/history`),
@@ -148,4 +150,11 @@ export const adminApi = {
   upsertPage: (slug, body) => api.patch(`/admin/pages/${slug}`, body),
   settings: () => api.get('/admin/settings'),
   patchSettings: (body) => api.patch('/admin/settings', body),
+  commerce: () => api.get('/admin/commerce'),
+  createPayment: (body) => api.post('/admin/commerce/payments', body),
+  updatePayment: (id, body) => api.patch(`/admin/commerce/payments/${id}`, body),
+  deletePayment: (id) => api.delete(`/admin/commerce/payments/${id}`),
+  createShipping: (body) => api.post('/admin/commerce/shipping', body),
+  updateShipping: (id, body) => api.patch(`/admin/commerce/shipping/${id}`, body),
+  deleteShipping: (id) => api.delete(`/admin/commerce/shipping/${id}`),
 };

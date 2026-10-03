@@ -11,6 +11,10 @@ export function AdminInventoryPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-inventory', q, lowStock],
     queryFn: () => adminApi.inventory({ ...(q ? { q } : {}), lowStock: String(lowStock) }),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 8000,
   });
 
   const mutate = useMutation({

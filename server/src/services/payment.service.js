@@ -1,8 +1,7 @@
 import { Order } from '../models/Order.js';
 import { Payment } from '../models/Payment.js';
-import { Variant } from '../models/Variant.js';
-import { InventoryAdjustment } from '../models/InventoryAdjustment.js';
 import { AppError } from '../utils/errors.js';
+import { reserveOrderStock } from './inventory.service.js';
 import { verifyWebhookSignature, verifyPaymentSignature } from './razorpay.service.js';
 import { clearCart } from './cart.service.js';
 import { formatMoney } from '../utils/money.js';
@@ -63,27 +62,7 @@ export const capturePaidOrder = async ({
       return { order, payment, alreadyProcessed: true };
     }
 
-    for (const item of order.items) {
-      let vQuery = Variant.findById(item.variantId);
-      if (session) vQuery = vQuery.session(session);
-      const variant = await vQuery;
-      if (!variant || variant.stockQty < item.quantity) {
-        throw new AppError(409, 'OUT_OF_STOCK', `Insufficient stock for ${item.sku}`);
-      }
-      variant.stockQty -= item.quantity;
-      await variant.save(opts(session));
-      await InventoryAdjustment.create(
-        [
-          {
-            variantId: variant._id,
-            delta: -item.quantity,
-            reason: 'payment_capture',
-            orderId: order._id,
-          },
-        ],
-        opts(session),
-      );
-    }
+    await reserveOrderStock(order, { session, reason: 'payment_capture' });
 
     order.status = 'PAID';
     order.paymentStatus = 'PAID';

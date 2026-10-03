@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ordersApi } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import { formatInr } from '../lib/media';
+import { orderStatusLabel } from '../lib/orderStatus';
 
 const SHIPPING_LABEL = {
   standard: 'Standard · 3–5 business days',
@@ -73,7 +74,9 @@ export function OrderConfirmationPage() {
           </div>
           <div className="text-sm text-[var(--color-text-muted)]">
             {order?.placedAt ? <p>{formatWhen(order.placedAt)}</p> : null}
-            {order?.status ? <p className="mt-1 uppercase tracking-[var(--tracking-caps)]">{order.status}</p> : null}
+            {order?.status ? (
+              <p className="mt-1 uppercase tracking-[var(--tracking-caps)]">{orderStatusLabel(order.status)}</p>
+            ) : null}
           </div>
         </div>
 
@@ -110,7 +113,10 @@ export function OrderConfirmationPage() {
                   Shipping
                 </p>
                 <p className="mt-2 text-sm">
-                  {SHIPPING_LABEL[order.shippingMethodId] || order.shippingMethodId || 'Standard'}
+                  {order.shippingLabel ||
+                    SHIPPING_LABEL[order.shippingMethodId] ||
+                    order.shippingMethodId ||
+                    'Standard'}
                 </p>
               </div>
               <div>
@@ -118,7 +124,9 @@ export function OrderConfirmationPage() {
                   Payment
                 </p>
                 <p className="mt-2 text-sm">
-                  {cash ? 'Cash on delivery — pay with cash when the order arrives' : 'Paid with Razorpay'}
+                  {cash
+                    ? order.paymentLabel || 'Cash on delivery — pay with cash when the order arrives'
+                    : order.paymentLabel || 'Razorpay'}
                 </p>
               </div>
             </div>

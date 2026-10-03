@@ -10,16 +10,6 @@ import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
 import { useBuyNowStore } from '../store/buyNowStore';
 
-const SHIPPING = [
-  { id: 'standard', label: 'Standard', detail: '3–5 business days', price: 0 },
-  { id: 'express', label: 'Express', detail: '1–2 business days', price: 199 },
-];
-
-const PAYMENTS = [
-  { id: 'razorpay', label: 'Razorpay', detail: 'UPI, cards, netbanking' },
-  { id: 'cod', label: 'Cash on delivery', detail: 'Pay with cash when the order arrives' },
-];
-
 function addressLines(addr) {
   if (!addr) return '';
   return [addr.line1, addr.line2, `${addr.city}, ${addr.state} ${addr.postalCode}`, addr.country]
@@ -44,8 +34,18 @@ export function CheckoutPage() {
   const [savingAddress, setSavingAddress] = useState(false);
   const [pickedId, setPickedId] = useState(null);
   const [guestAddress, setGuestAddress] = useState(null);
-  const [shippingMethod, setShippingMethod] = useState('standard');
-  const [paymentMethod, setPaymentMethod] = useState('razorpay');
+  const [shippingMethod, setShippingMethod] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const { data: commerceOptions } = useQuery({
+    queryKey: ['commerce-options'],
+    queryFn: checkoutApi.options,
+  });
+  const shippingOptions = commerceOptions?.shippingMethods || [];
+  const paymentOptions = commerceOptions?.paymentMethods || [];
+  const activeShipping =
+    shippingOptions.find((method) => method.id === shippingMethod) || shippingOptions[0] || null;
+  const activePayment =
+    paymentOptions.find((method) => method.id === paymentMethod) || paymentOptions[0] || null;
   const [phoneEdited, setPhoneEdited] = useState(false);
   const [form, setForm] = useState(() => ({
     email: user?.email || '',
@@ -98,7 +98,7 @@ export function CheckoutPage() {
     return Number(cart?.subtotal) || 0;
   }, [buyNowMode, buyNowItem, cart]);
 
-  const shippingFee = SHIPPING.find((method) => method.id === shippingMethod)?.price || 0;
+  const shippingFee = Number(activeShipping?.price ?? activeShipping?.priceInr ?? 0) || 0;
   const grand = subtotal + shippingFee;
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -129,10 +129,14 @@ export function CheckoutPage() {
       orderNumber,
       email: form.email,
       phone,
-      status: paymentMethod === 'cod' ? 'PROCESSING' : 'PAID',
-      paymentStatus: paymentMethod === 'cod' ? 'PENDING' : 'PAID',
-      paymentMethod,
-      shippingMethodId: shippingMethod,
+      status: activePayment?.id === 'cod' ? 'PROCESSING' : 'PAID',
+      paymentStatus: activePayment?.id === 'cod' ? 'PENDING' : 'PAID',
+      paymentMethod: activePayment?.id,
+      paymentLabel: activePayment?.label,
+      shippingMethodId: activeShipping?.id,
+      shippingLabel: activeShipping
+        ? `${activeShipping.label || activeShipping.name}${activeShipping.detail || activeShipping.estimate ? ` · ${activeShipping.detail || activeShipping.estimate}` : ''}`
+        : '',
       shippingAddress: {
         fullName: form.fullName,
         phone,
@@ -165,6 +169,10 @@ export function CheckoutPage() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (!activeShipping || !activePayment) {
+      push({ title: 'Checkout unavailable', message: 'Shipping or payment is not enabled.' });
+      return;
+    }
     if (!chosen?.line1) {
       push({ title: 'Add an address', message: 'Choose a saved address or add a new one.' });
       setDialogOpen(true);
@@ -175,8 +183,8 @@ export function CheckoutPage() {
       const payload = {
         email: form.email,
         phone,
-        shippingMethodId: shippingMethod,
-        paymentMethod,
+        shippingMethodId: activeShipping?.id,
+        paymentMethod: activePayment?.id,
         shippingAddress: {
           fullName: form.fullName,
           phone,
@@ -201,10 +209,17 @@ export function CheckoutPage() {
       const result = await checkoutApi.create(payload);
       rememberOrder(result.orderNumber);
 
-      if (result.payment?.provider === 'cod') {
+      if (result.payment?.provider !== 'razorpay') {
         clearBuyNow();
         qc.invalidateQueries({ queryKey: ['cart'] });
-        push({ title: 'GOOD CHOICE.', message: 'Pay with cash when the order arrives.' });
+        qc.invalidateQueries({ queryKey: ['product'] });
+        push({
+          title: 'GOOD CHOICE.',
+          message:
+            result.payment?.provider === 'cod'
+              ? 'Pay with cash when the order arrives.'
+              : `${result.payment?.label || 'Payment'} selected.`,
+        });
         navigate(`/order-confirmation/${result.orderNumber}`);
         return;
       }
@@ -217,6 +232,7 @@ export function CheckoutPage() {
         });
         clearBuyNow();
         qc.invalidateQueries({ queryKey: ['cart'] });
+        qc.invalidateQueries({ queryKey: ['product'] });
         push({ title: 'GOOD CHOICE.', message: "We'll handle the rest." });
         navigate(`/order-confirmation/${result.orderNumber}`);
         return;
@@ -248,6 +264,7 @@ export function CheckoutPage() {
               });
               clearBuyNow();
               qc.invalidateQueries({ queryKey: ['cart'] });
+              qc.invalidateQueries({ queryKey: ['product'] });
               push({ title: 'GOOD CHOICE.', message: "We'll handle the rest." });
               navigate(`/order-confirmation/${result.orderNumber}`);
               resolve();
@@ -362,35 +379,40 @@ export function CheckoutPage() {
           <section>
             <h2 className="text-sm font-semibold uppercase tracking-[var(--tracking-caps)]">Shipping</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {SHIPPING.map((method) => (
+              {shippingOptions.map((method) => (
                 <button
                   key={method.id}
                   type="button"
                   onClick={() => setShippingMethod(method.id)}
                   className={`border px-4 py-3 text-left text-sm ${
-                    shippingMethod === method.id
+                    activeShipping?.id === method.id
                       ? 'border-[#1c4332] bg-[#e7f0ea]'
                       : 'border-[var(--color-border)]'
                   }`}
                 >
-                  <span className="font-medium">{method.label}</span>
-                  <span className="mt-1 block text-[var(--color-text-muted)]">{method.detail}</span>
-                  <span className="mt-2 block font-medium">{method.price ? formatInr(method.price) : 'Free'}</span>
+                  <span className="font-medium">{method.label || method.name}</span>
+                  <span className="mt-1 block text-[var(--color-text-muted)]">{method.detail || method.estimate}</span>
+                  <span className="mt-2 block font-medium">
+                    {Number(method.price) ? formatInr(method.price) : 'Free'}
+                  </span>
                 </button>
               ))}
             </div>
+            {!shippingOptions.length ? (
+              <p className="mt-4 text-sm text-[var(--color-text-muted)]">No shipping methods are available.</p>
+            ) : null}
           </section>
 
           <section>
             <h2 className="text-sm font-semibold uppercase tracking-[var(--tracking-caps)]">Payment</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {PAYMENTS.map((method) => (
+              {paymentOptions.map((method) => (
                 <button
                   key={method.id}
                   type="button"
                   onClick={() => setPaymentMethod(method.id)}
                   className={`border px-4 py-3 text-left text-sm ${
-                    paymentMethod === method.id
+                    activePayment?.id === method.id
                       ? 'border-[#1c4332] bg-[#e7f0ea]'
                       : 'border-[var(--color-border)]'
                   }`}
@@ -400,10 +422,18 @@ export function CheckoutPage() {
                 </button>
               ))}
             </div>
+            {!paymentOptions.length ? (
+              <p className="mt-4 text-sm text-[var(--color-text-muted)]">No payment methods are available.</p>
+            ) : null}
           </section>
 
-          <Button type="submit" loading={loading} className="w-full sm:w-auto">
-            {paymentMethod === 'cod' ? `Pay with cash · ${formatInr(grand)}` : `Pay ${formatInr(grand)}`}
+          <Button
+            type="submit"
+            loading={loading}
+            disabled={!activeShipping || !activePayment}
+            className="w-full sm:w-auto"
+          >
+            {activePayment?.id === 'cod' ? `Pay with cash · ${formatInr(grand)}` : `Pay ${formatInr(grand)}`}
           </Button>
         </form>
       </div>

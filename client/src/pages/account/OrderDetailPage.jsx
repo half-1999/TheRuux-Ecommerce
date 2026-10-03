@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi } from '../../api/client';
 import { formatInr } from '../../lib/media';
+import { orderStatusLabel } from '../../lib/orderStatus';
 
 export function OrderDetailPage() {
   const { orderNumber } = useParams();
@@ -26,7 +27,9 @@ export function OrderDetailPage() {
       </Link>
       <h2 className="mt-4 text-2xl font-semibold">{data.orderNumber}</h2>
       <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-        {data.status} · {data.paymentStatus}
+        {orderStatusLabel(data.status)} · {data.paymentStatus}
+        {data.paymentMethod ? ` · ${data.paymentMethod}` : ''}
+        {data.shippingMethodId ? ` · ${data.shippingMethodId}` : ''}
       </p>
       <ul className="mt-8 space-y-4">
         {data.items?.map((item) => (

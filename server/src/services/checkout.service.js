@@ -3,7 +3,7 @@ import { Order } from '../models/Order.js';
 import { Payment } from '../models/Payment.js';
 import { Product } from '../models/Product.js';
 import { Variant } from '../models/Variant.js';
-import { InventoryAdjustment } from '../models/InventoryAdjustment.js';
+import { reserveOrderStock } from './inventory.service.js';
 import { Address } from '../models/Address.js';
 import { Settings } from '../models/Settings.js';
 import { AppError } from '../utils/errors.js';
@@ -15,6 +15,7 @@ import { createRazorpayOrder } from './razorpay.service.js';
 import { sendOrderConfirmation } from './email.service.js';
 import { captureException } from '../config/sentry.js';
 import { env } from '../config/env.js';
+import { getEnabledCommerce, resolveCheckoutMethods } from './commerce-config.service.js';
 import { withTransaction } from '../utils/transaction.js';
 
 const snapAddress = (addr) => ({
@@ -28,10 +29,10 @@ const snapAddress = (addr) => ({
   country: addr.country || 'IN',
 });
 
-const EXPRESS_INR = 199;
-
-const getShipping = async (shippingMethodId = 'standard') => {
-  if (shippingMethodId === 'express') return toMoney(EXPRESS_INR);
+const getShipping = async (shippingMethodId) => {
+  const { shippingMethods } = await getEnabledCommerce();
+  const match = shippingMethods.find((method) => method.id === shippingMethodId);
+  if (match) return toMoney(match.priceInr);
   const settings = await Settings.findOne({ key: 'store' }).lean();
   return toMoney(settings?.shippingStandardInr ?? env.shippingStandardInr);
 };
@@ -112,8 +113,10 @@ export const createCheckout = async ({
   }
 
   const billAddr = billingAddress ? snapAddress(billingAddress) : shipAddr;
-  const shipping = await getShipping(shippingMethodId);
-  const isCod = paymentMethod === 'cod';
+  const resolved = await resolveCheckoutMethods({ shippingMethodId, paymentMethod });
+  const shipping = toMoney(resolved.shipping.priceInr);
+  const isRazorpay = resolved.payment.id === 'razorpay';
+  const isCod = resolved.payment.id === 'cod';
 
   const result = await withTransaction(async (session) => {
     const orderItems = [];
@@ -174,7 +177,7 @@ export const createCheckout = async ({
           guestToken: userId ? null : guestToken,
           email,
           phone: phone || '',
-          status: isCod ? 'PROCESSING' : 'PENDING_PAYMENT',
+          status: isRazorpay ? 'PENDING_PAYMENT' : 'PROCESSING',
           paymentStatus: 'PENDING',
           items: orderItems,
           subtotal,
@@ -184,11 +187,12 @@ export const createCheckout = async ({
           shippingAddress: snapAddress(shipAddr),
           billingAddress: billAddr,
           shippingMethodId,
+          paymentMethod: resolved.payment.id,
           cartId: ephemeral ? null : cart._id,
           timeline: [
             {
-              status: isCod ? 'PROCESSING' : 'PENDING_PAYMENT',
-              note: isCod ? 'Cash on delivery' : 'Order created',
+              status: isRazorpay ? 'PENDING_PAYMENT' : 'PROCESSING',
+              note: isCod ? 'Cash on delivery' : isRazorpay ? 'Order created' : resolved.payment.label,
             },
           ],
         },
@@ -196,35 +200,19 @@ export const createCheckout = async ({
       opts(session),
     );
 
-    if (isCod) {
-      for (const item of order.items) {
-        let vQuery = Variant.findById(item.variantId);
-        if (session) vQuery = vQuery.session(session);
-        const variant = await vQuery;
-        if (!variant || variant.stockQty < item.quantity) {
-          throw new AppError(409, 'OUT_OF_STOCK', `Insufficient stock for ${item.sku}`);
-        }
-        variant.stockQty -= item.quantity;
-        await variant.save(opts(session));
-        await InventoryAdjustment.create(
-          [
-            {
-              variantId: variant._id,
-              delta: -item.quantity,
-              reason: 'cod_reserve',
-              orderId: order._id,
-            },
-          ],
-          opts(session),
-        );
-      }
+    if (!isRazorpay) {
+      await reserveOrderStock(order, {
+        session,
+        reason: isCod ? 'cod_reserve' : 'order_reserve',
+      });
       if (!ephemeral && order.cartId) await clearCart(order.cartId, session);
       return {
         orderId: order._id.toString(),
         orderNumber: order.orderNumber,
         payment: {
-          provider: 'cod',
-          method: 'cod',
+          provider: isCod ? 'cod' : 'manual',
+          method: resolved.payment.id,
+          label: resolved.payment.label,
           amount: formatMoney(grandTotal),
           currency: 'INR',
         },
@@ -266,7 +254,7 @@ export const createCheckout = async ({
     };
   });
 
-  if (result.payment?.provider === 'cod') {
+  if (result.payment?.provider !== 'razorpay') {
     const order = await Order.findById(result.orderId);
     sendOrderConfirmation(order).catch((err) => {
       console.error('[checkout] confirmation email failed:', err.message);

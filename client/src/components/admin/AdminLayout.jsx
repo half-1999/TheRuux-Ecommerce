@@ -11,6 +11,8 @@ const NAV = [
   { to: '/admin/inventory', label: 'Inventory' },
   { to: '/admin/orders', label: 'Orders' },
   { to: '/admin/customers', label: 'Customers' },
+  { to: '/admin/payments', label: 'Payments' },
+  { to: '/admin/shipping', label: 'Shipping' },
   { to: '/admin/homepage', label: 'Homepage CMS' },
   { to: '/admin/settings', label: 'Settings' },
 ];

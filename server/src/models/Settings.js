@@ -9,6 +9,23 @@ const settingsSchema = new mongoose.Schema(
     storePhone: { type: String, default: '' },
     instagramUrl: { type: String, default: 'https://instagram.com/theruux' },
     currency: { type: String, default: 'INR' },
+    paymentMethods: [
+      {
+        id: String,
+        label: String,
+        detail: String,
+        enabled: { type: Boolean, default: true },
+      },
+    ],
+    shippingMethods: [
+      {
+        id: String,
+        name: String,
+        priceInr: { type: Number, default: 0 },
+        estimate: String,
+        enabled: { type: Boolean, default: true },
+      },
+    ],
   },
   { timestamps: true },
 );

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../api/client';
 
 export function AdminProductsPage() {
+  const qc = useQueryClient();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
+  const [msg, setMsg] = useState('');
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-products', q, status],
     queryFn: () =>
@@ -13,6 +15,15 @@ export function AdminProductsPage() {
         ...(q ? { q } : {}),
         ...(status ? { status } : {}),
       }),
+  });
+
+  const archive = useMutation({
+    mutationFn: adminApi.archiveProduct,
+    onSuccess: () => {
+      setMsg('Product archived. It is hidden from the store.');
+      qc.invalidateQueries({ queryKey: ['admin-products'] });
+    },
+    onError: (err) => setMsg(err.message),
   });
 
   return (
@@ -39,6 +50,7 @@ export function AdminProductsPage() {
       </div>
 
       {error ? <p className="admin-error">{error.message}</p> : null}
+      {msg ? <p className="admin-muted">{msg}</p> : null}
 
       <div className="admin-table-wrap">
         <table className="admin-table">
@@ -74,6 +86,21 @@ export function AdminProductsPage() {
                   <Link to={`/admin/products/${p.id}`} className="admin-btn">
                     Edit
                   </Link>
+                  {p.status !== 'archived' ? (
+                    <button
+                      type="button"
+                      className="admin-btn"
+                      style={{ marginLeft: '0.4rem' }}
+                      disabled={archive.isPending}
+                      onClick={() => {
+                        if (window.confirm(`Archive ${p.name}? It will leave the store.`)) {
+                          archive.mutate(p.id);
+                        }
+                      }}
+                    >
+                      Delete
+                    </button>
+                  ) : null}
                 </td>
               </tr>
             ))}

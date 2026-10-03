@@ -12,6 +12,8 @@ export const listMyOrders = async (userId) => {
       orderNumber: o.orderNumber,
       status: o.status,
       paymentStatus: o.paymentStatus,
+      paymentMethod: o.paymentMethod || '',
+      shippingMethodId: o.shippingMethodId || '',
       grandTotal: formatMoney(o.grandTotal),
       currency: o.currency,
       placedAt: o.placedAt,

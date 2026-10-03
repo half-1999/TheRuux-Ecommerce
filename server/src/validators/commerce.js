@@ -40,8 +40,8 @@ export const checkoutCreateSchema = z.object({
   shippingAddress: addressSchema.optional(),
   billingAddress: addressSchema.optional(),
   addressId: z.string().optional(),
-  shippingMethodId: z.enum(['standard', 'express']).default('standard'),
-  paymentMethod: z.enum(['razorpay', 'cod']).default('razorpay'),
+  shippingMethodId: z.string().trim().min(1),
+  paymentMethod: z.string().trim().min(1),
   buyNow: z
     .object({
       productId: z.string(),

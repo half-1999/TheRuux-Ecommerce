@@ -55,12 +55,13 @@ export function AdminCollectionsPage() {
               <th>Slug</th>
               <th>Tagline</th>
               <th>Active</th>
+              <th />
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={4}>Loading…</td>
+                <td colSpan={5}>Loading…</td>
               </tr>
             ) : null}
             {items.map((c) => (
@@ -69,6 +70,34 @@ export function AdminCollectionsPage() {
                 <td className="admin-mono">{c.slug}</td>
                 <td>{c.tagline}</td>
                 <td>{c.isActive !== false ? 'yes' : 'no'}</td>
+                <td>
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    onClick={() => {
+                      const name = window.prompt('Collection name', c.name);
+                      if (!name) return;
+                      adminApi.updateCollection(c._id || c.id, { ...c, name }).then(() =>
+                        qc.invalidateQueries({ queryKey: ['admin-collections'] }),
+                      );
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    style={{ marginLeft: '0.4rem' }}
+                    onClick={() => {
+                      if (!window.confirm(`Disable ${c.name}?`)) return;
+                      adminApi.deleteCollection(c._id || c.id).then(() =>
+                        qc.invalidateQueries({ queryKey: ['admin-collections'] }),
+                      );
+                    }}
+                  >
+                    Disable
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

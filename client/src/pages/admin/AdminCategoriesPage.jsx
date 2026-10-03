@@ -70,7 +70,21 @@ export function AdminCategoriesPage() {
                 <td>
                   <button
                     type="button"
+                    className="admin-btn"
+                    onClick={() => {
+                      const name = window.prompt('Category name', c.name);
+                      if (!name) return;
+                      adminApi.updateCategory(c._id || c.id, { name, slug: c.slug, sortOrder: c.sortOrder }).then(() =>
+                        qc.invalidateQueries({ queryKey: ['admin-categories'] }),
+                      );
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
                     className="admin-btn admin-btn-danger"
+                    style={{ marginLeft: '0.4rem' }}
                     onClick={() =>
                       adminApi.deleteCategory(c._id || c.id).then(() =>
                         qc.invalidateQueries({ queryKey: ['admin-categories'] }),

@@ -134,6 +134,36 @@
   font-variant-numeric: tabular-nums;
 }
 
+.admin-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+  height: 148px;
+  margin-top: 0.85rem;
+}
+
+.admin-chart-col {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.admin-chart-bar {
+  width: 100%;
+  background: var(--admin-ok);
+  min-height: 2px;
+}
+
+.admin-chart-label {
+  margin-top: 0.35rem;
+  font-size: 9px;
+  color: var(--admin-muted);
+}
+
 .admin-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--admin-border);
@@ -254,6 +284,8 @@
   margin-bottom: 0.75rem;
 }
 
+.admin-table input,
+.admin-table select,
 .admin-toolbar input,
 .admin-toolbar select {
   min-height: 32px;

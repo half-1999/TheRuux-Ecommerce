@@ -16,6 +16,10 @@ export function ProductPage() {
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', slug],
     queryFn: () => catalogApi.product(slug),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
   });
   const add = useAddToCart();
   const { data: cart } = useCart();
@@ -197,6 +201,13 @@ export function ProductPage() {
             </button>
           </div>
           <p className="mt-4 text-lg font-medium">{formatInr(product.price)}</p>
+          <p className="mt-2 text-sm font-medium">
+            {selectedVariant
+              ? Number(selectedVariant.stockQty) > 0
+                ? `${selectedVariant.stockQty} remaining in stock`
+                : 'Out of stock'
+              : `${(product.variants || []).reduce((sum, variant) => sum + (Number(variant.stockQty) || 0), 0)} remaining across sizes`}
+          </p>
           {product.namingNote ? (
             <p className="mt-2 text-xs text-[var(--color-text-subtle)]">{product.namingNote}</p>
           ) : null}
@@ -251,9 +262,19 @@ export function ProductPage() {
                   }`}
                 >
                   {v.size}
+                  <span className="mt-0.5 block text-[10px] tracking-normal opacity-70">
+                    {Number(v.stockQty) > 0 ? `${v.stockQty} left` : 'None'}
+                  </span>
                 </button>
               ))}
             </div>
+            <p className="mt-3 text-sm text-[var(--color-text-muted)]">
+              {selectedVariant
+                ? Number(selectedVariant.stockQty) > 0
+                  ? `${selectedVariant.stockQty} in stock · ${selectedVariant.size} / ${selectedVariant.colourName}`
+                  : `Out of stock · ${selectedVariant.size} / ${selectedVariant.colourName}`
+                : 'Select a size'}
+            </p>
           </div>
 
           {product.allowsPersonalization ? (

@@ -105,6 +105,8 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
     queryFn: () => adminApi.product(id),
     enabled: !isNew,
     initialData: initialDetail || undefined,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const set = (key) => (e) => {
@@ -326,17 +328,20 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
                   <th>Colour</th>
                   <th>Stock</th>
                   <th>Active</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
                 {variants.map((v) => (
-                  <tr key={v._id || v.id}>
-                    <td className="admin-mono">{v.sku}</td>
-                    <td>{v.size}</td>
-                    <td>{v.colourName}</td>
-                    <td>{v.stockQty}</td>
-                    <td>{v.isActive ? 'yes' : 'no'}</td>
-                  </tr>
+                  <VariantRow
+                    key={v._id || v.id}
+                    variant={v}
+                    onSaved={(text) => {
+                      setMessage(text);
+                      qc.invalidateQueries({ queryKey: ['admin-product', id] });
+                      qc.invalidateQueries({ queryKey: ['admin-inventory'] });
+                    }}
+                  />
                 ))}
               </tbody>
             </table>
@@ -482,5 +487,72 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
         </div>
       )}
     </>
+  );
+}
+
+function VariantRow({ variant, onSaved }) {
+  const [sku, setSku] = useState(variant.sku || '');
+  const [size, setSize] = useState(variant.size || '');
+  const [colourName, setColourName] = useState(variant.colourName || '');
+  const [stockQty, setStockQty] = useState(variant.stockQty ?? 0);
+  const id = variant._id || variant.id;
+
+  const save = useMutation({
+    mutationFn: () =>
+      adminApi.updateVariant(id, {
+        sku,
+        size,
+        colourName,
+        stockQty: Number(stockQty) || 0,
+        isActive: variant.isActive !== false,
+      }),
+    onSuccess: () => onSaved('Variant saved.'),
+    onError: (err) => onSaved(err.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: () => adminApi.deactivateVariant(id),
+    onSuccess: () => onSaved('Variant removed from the store.'),
+    onError: (err) => onSaved(err.message),
+  });
+
+  return (
+    <tr>
+      <td>
+        <input value={sku} onChange={(e) => setSku(e.target.value)} />
+      </td>
+      <td>
+        <input value={size} onChange={(e) => setSize(e.target.value)} style={{ width: 72 }} />
+      </td>
+      <td>
+        <input value={colourName} onChange={(e) => setColourName(e.target.value)} />
+      </td>
+      <td>
+        <input
+          type="number"
+          min="0"
+          value={stockQty}
+          onChange={(e) => setStockQty(e.target.value)}
+          style={{ width: 80 }}
+        />
+      </td>
+      <td>{variant.isActive === false ? 'no' : 'yes'}</td>
+      <td>
+        <button type="button" className="admin-btn" disabled={save.isPending} onClick={() => save.mutate()}>
+          Save
+        </button>
+        <button
+          type="button"
+          className="admin-btn"
+          style={{ marginLeft: '0.35rem' }}
+          disabled={remove.isPending}
+          onClick={() => {
+            if (window.confirm(`Remove ${variant.sku}?`)) remove.mutate();
+          }}
+        >
+          Delete
+        </button>
+      </td>
+    </tr>
   );
 }

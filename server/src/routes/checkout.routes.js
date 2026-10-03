@@ -5,11 +5,19 @@ import { resolveGuest } from '../middleware/guest.js';
 import { validate } from '../middleware/validate.js';
 import { addressSchema, checkoutCreateSchema } from '../validators/commerce.js';
 import { previewCheckout, createCheckout } from '../services/checkout.service.js';
+import { getEnabledCommerce } from '../services/commerce-config.service.js';
 import { z } from 'zod';
 
 const router = Router();
 
 router.use(optionalAuth, resolveGuest);
+
+router.get(
+  '/options',
+  asyncHandler(async (_req, res) => {
+    res.json(await getEnabledCommerce());
+  }),
+);
 
 router.post(
   '/preview',

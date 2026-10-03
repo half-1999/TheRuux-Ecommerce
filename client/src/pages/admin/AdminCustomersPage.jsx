@@ -24,6 +24,8 @@ export function AdminCustomersPage() {
             <tr>
               <th>Name</th>
               <th>Email</th>
+              <th>Phone</th>
+              <th>Orders</th>
               <th>Status</th>
               <th>Joined</th>
             </tr>
@@ -31,7 +33,7 @@ export function AdminCustomersPage() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={4}>Loading…</td>
+                <td colSpan={6}>Loading…</td>
               </tr>
             ) : null}
             {(data?.items || []).map((c) => (
@@ -40,6 +42,8 @@ export function AdminCustomersPage() {
                   <Link to={`/admin/customers/${c.id}`}>{c.name}</Link>
                 </td>
                 <td>{c.email}</td>
+                <td>{c.phone || '—'}</td>
+                <td>{c.orderCount ?? 0}</td>
                 <td>
                   <span className={`admin-badge ${c.status === 'active' ? 'ok' : 'warn'}`}>{c.status}</span>
                 </td>

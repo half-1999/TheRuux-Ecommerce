@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi } from '../../api/client';
 import { formatInr } from '../../lib/media';
+import { orderStatusLabel } from '../../lib/orderStatus';
 import { Skeleton } from '../../components/ui';
 
 export function OrdersPage() {
@@ -22,7 +23,7 @@ export function OrdersPage() {
               {o.orderNumber}
             </Link>
             <p className="mt-1 text-xs uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
-              {o.status} · {o.paymentStatus}
+              {orderStatusLabel(o.status)} · {o.paymentStatus}
             </p>
           </div>
           <p className="text-sm font-medium">{formatInr(o.grandTotal)}</p>

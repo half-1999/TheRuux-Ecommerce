@@ -6,6 +6,15 @@ import { validate } from '../middleware/validate.js';
 import { upload, uploadMedia, getUploadSignature } from '../services/media.service.js';
 
 import * as admin from '../services/admin.service.js';
+import {
+  getCommerceConfig,
+  createPaymentMethod,
+  updatePaymentMethod,
+  deletePaymentMethod,
+  createShippingMethod,
+  updateShippingMethod,
+  deleteShippingMethod,
+} from '../services/commerce-config.service.js';
 import { Category } from '../models/Category.js';
 import { Collection } from '../models/Collection.js';
 import { HomepageSection } from '../models/HomepageSection.js';
@@ -197,6 +206,14 @@ router.patch(
   }),
 );
 
+router.delete(
+  '/collections/:id',
+  asyncHandler(async (req, res) => {
+    await Collection.findByIdAndUpdate(req.params.id, { isActive: false });
+    res.json({ ok: true });
+  }),
+);
+
 // Inventory
 router.get(
   '/inventory',
@@ -333,6 +350,55 @@ router.patch(
   '/pages/:slug',
   asyncHandler(async (req, res) => {
     res.json(await admin.adminUpsertPage(req.params.slug, req.body, req.user._id));
+  }),
+);
+
+router.get(
+  '/commerce',
+  asyncHandler(async (_req, res) => {
+    res.json(await getCommerceConfig());
+  }),
+);
+
+router.post(
+  '/commerce/payments',
+  asyncHandler(async (req, res) => {
+    res.status(201).json(await createPaymentMethod(req.body));
+  }),
+);
+
+router.patch(
+  '/commerce/payments/:id',
+  asyncHandler(async (req, res) => {
+    res.json(await updatePaymentMethod(req.params.id, req.body));
+  }),
+);
+
+router.delete(
+  '/commerce/payments/:id',
+  asyncHandler(async (req, res) => {
+    res.json(await deletePaymentMethod(req.params.id));
+  }),
+);
+
+router.post(
+  '/commerce/shipping',
+  asyncHandler(async (req, res) => {
+    res.status(201).json(await createShippingMethod(req.body));
+  }),
+);
+
+router.patch(
+  '/commerce/shipping/:id',
+  asyncHandler(async (req, res) => {
+    res.json(await updateShippingMethod(req.params.id, req.body));
+  }),
+);
+
+router.delete(
+  '/commerce/shipping/:id',
+  asyncHandler(async (req, res) => {
+    res.json(await deleteShippingMethod(req.params.id));
   }),
 );
 

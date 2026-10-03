@@ -16,6 +16,80 @@ export const assertAvailable = async (variantId, qty) => {
   return variant;
 };
 
+const sessionOpts = (session) => (session ? { session } : {});
+
+const HOLDING_STATUSES = new Set(['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'COMPLETED']);
+
+export const orderHoldsStock = (status) => HOLDING_STATUSES.has(status);
+
+export const reservedUnitsByVariant = async (orderId, session) => {
+  let query = InventoryAdjustment.find({ orderId });
+  if (session) query = query.session(session);
+  const rows = await query.lean();
+  const net = new Map();
+  for (const row of rows) {
+    const key = String(row.variantId);
+    net.set(key, (net.get(key) || 0) + row.delta);
+  }
+  return net;
+};
+
+export const reserveOrderStock = async (order, { session, reason, adminId } = {}) => {
+  const net = await reservedUnitsByVariant(order._id, session);
+  for (const item of order.items || []) {
+    const already = -(net.get(String(item.variantId)) || 0);
+    const need = item.quantity - already;
+    if (need <= 0) continue;
+    let query = Variant.findById(item.variantId);
+    if (session) query = query.session(session);
+    const variant = await query;
+    if (!variant || variant.stockQty < need) {
+      throw new AppError(409, 'OUT_OF_STOCK', `Insufficient stock for ${item.sku || 'item'}`);
+    }
+    variant.stockQty -= need;
+    await variant.save(sessionOpts(session));
+    await InventoryAdjustment.create(
+      [
+        {
+          variantId: variant._id,
+          delta: -need,
+          reason: reason || 'order_reserve',
+          orderId: order._id,
+          adminId: adminId || null,
+        },
+      ],
+      sessionOpts(session),
+    );
+  }
+};
+
+export const releaseOrderStock = async (order, { session, reason, adminId } = {}) => {
+  const net = await reservedUnitsByVariant(order._id, session);
+  for (const item of order.items || []) {
+    const taken = -(net.get(String(item.variantId)) || 0);
+    if (taken <= 0) continue;
+    const restore = Math.min(taken, item.quantity);
+    let query = Variant.findById(item.variantId);
+    if (session) query = query.session(session);
+    const variant = await query;
+    if (!variant) continue;
+    variant.stockQty += restore;
+    await variant.save(sessionOpts(session));
+    await InventoryAdjustment.create(
+      [
+        {
+          variantId: variant._id,
+          delta: restore,
+          reason: reason || 'order_release',
+          orderId: order._id,
+          adminId: adminId || null,
+        },
+      ],
+      sessionOpts(session),
+    );
+  }
+};
+
 export const adjustStock = async ({ variantId, delta, reason, adminId }) => {
   const variant = await Variant.findById(variantId);
   if (!variant) throw new AppError(404, 'NOT_FOUND', 'Variant not found');

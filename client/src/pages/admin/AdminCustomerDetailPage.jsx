@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../api/client';
+import { orderStatusLabel } from '../../lib/orderStatus';
 
 export function AdminCustomerDetailPage() {
   const { id } = useParams();
@@ -31,7 +32,11 @@ export function AdminCustomerDetailPage() {
       <div className="admin-card">
         <p>{user.email}</p>
         <p className="admin-muted" style={{ marginTop: '0.5rem' }}>
+          {user.phone || 'No phone'} · {user.role || 'customer'}
+        </p>
+        <p className="admin-muted" style={{ marginTop: '0.5rem' }}>
           Status: {user.status}
+          {user.createdAt ? ` · Joined ${new Date(user.createdAt).toLocaleDateString()}` : ''}
         </p>
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
           <button
@@ -63,7 +68,7 @@ export function AdminCustomerDetailPage() {
                     {o.orderNumber}
                   </Link>
                 </td>
-                <td>{o.status}</td>
+                <td>{orderStatusLabel(o.status)}</td>
                 <td>₹{Number(o.grandTotal).toFixed(2)}</td>
               </tr>
             ))}
