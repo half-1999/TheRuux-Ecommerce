@@ -3,6 +3,7 @@ import { Order } from '../models/Order.js';
 import { Payment } from '../models/Payment.js';
 import { Product } from '../models/Product.js';
 import { Variant } from '../models/Variant.js';
+import { InventoryAdjustment } from '../models/InventoryAdjustment.js';
 import { Address } from '../models/Address.js';
 import { Settings } from '../models/Settings.js';
 import { AppError } from '../utils/errors.js';
@@ -11,6 +12,8 @@ import { generateOrderNumber } from '../utils/orderNumber.js';
 import { unitPriceFor, primaryImage } from '../utils/serializers.js';
 import { findOrCreateCart, serializeCart, clearCart } from './cart.service.js';
 import { createRazorpayOrder } from './razorpay.service.js';
+import { sendOrderConfirmation } from './email.service.js';
+import { captureException } from '../config/sentry.js';
 import { env } from '../config/env.js';
 import { withTransaction } from '../utils/transaction.js';
 
@@ -25,7 +28,10 @@ const snapAddress = (addr) => ({
   country: addr.country || 'IN',
 });
 
-const getShipping = async () => {
+const EXPRESS_INR = 199;
+
+const getShipping = async (shippingMethodId = 'standard') => {
+  if (shippingMethodId === 'express') return toMoney(EXPRESS_INR);
   const settings = await Settings.findOne({ key: 'store' }).lean();
   return toMoney(settings?.shippingStandardInr ?? env.shippingStandardInr);
 };
@@ -72,6 +78,7 @@ export const createCheckout = async ({
   billingAddress,
   addressId,
   shippingMethodId = 'standard',
+  paymentMethod = 'razorpay',
   buyNow,
 }) => {
   const cart = await findOrCreateCart({ userId, guestToken });
@@ -105,9 +112,10 @@ export const createCheckout = async ({
   }
 
   const billAddr = billingAddress ? snapAddress(billingAddress) : shipAddr;
-  const shipping = await getShipping();
+  const shipping = await getShipping(shippingMethodId);
+  const isCod = paymentMethod === 'cod';
 
-  return withTransaction(async (session) => {
+  const result = await withTransaction(async (session) => {
     const orderItems = [];
     let subtotal = 0;
 
@@ -166,7 +174,7 @@ export const createCheckout = async ({
           guestToken: userId ? null : guestToken,
           email,
           phone: phone || '',
-          status: 'PENDING_PAYMENT',
+          status: isCod ? 'PROCESSING' : 'PENDING_PAYMENT',
           paymentStatus: 'PENDING',
           items: orderItems,
           subtotal,
@@ -177,11 +185,51 @@ export const createCheckout = async ({
           billingAddress: billAddr,
           shippingMethodId,
           cartId: ephemeral ? null : cart._id,
-          timeline: [{ status: 'PENDING_PAYMENT', note: 'Order created' }],
+          timeline: [
+            {
+              status: isCod ? 'PROCESSING' : 'PENDING_PAYMENT',
+              note: isCod ? 'Cash on delivery' : 'Order created',
+            },
+          ],
         },
       ],
       opts(session),
     );
+
+    if (isCod) {
+      for (const item of order.items) {
+        let vQuery = Variant.findById(item.variantId);
+        if (session) vQuery = vQuery.session(session);
+        const variant = await vQuery;
+        if (!variant || variant.stockQty < item.quantity) {
+          throw new AppError(409, 'OUT_OF_STOCK', `Insufficient stock for ${item.sku}`);
+        }
+        variant.stockQty -= item.quantity;
+        await variant.save(opts(session));
+        await InventoryAdjustment.create(
+          [
+            {
+              variantId: variant._id,
+              delta: -item.quantity,
+              reason: 'cod_reserve',
+              orderId: order._id,
+            },
+          ],
+          opts(session),
+        );
+      }
+      if (!ephemeral && order.cartId) await clearCart(order.cartId, session);
+      return {
+        orderId: order._id.toString(),
+        orderNumber: order.orderNumber,
+        payment: {
+          provider: 'cod',
+          method: 'cod',
+          amount: formatMoney(grandTotal),
+          currency: 'INR',
+        },
+      };
+    }
 
     const rp = await createRazorpayOrder({
       amountPaise: toPaise(grandTotal),
@@ -217,6 +265,16 @@ export const createCheckout = async ({
       },
     };
   });
+
+  if (result.payment?.provider === 'cod') {
+    const order = await Order.findById(result.orderId);
+    sendOrderConfirmation(order).catch((err) => {
+      console.error('[checkout] confirmation email failed:', err.message);
+      captureException(err, { orderId: result.orderId });
+    });
+  }
+
+  return result;
 };
 
 export { clearCart };

@@ -34,7 +34,7 @@ export function ShopPage({ mode = 'all' }) {
           : 'Shop All';
 
   return (
-    <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] pb-24 pt-28">
+    <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] pt-50 pb-24">
       <nav className="text-xs uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
         <Link to="/" className="hover:text-[var(--color-text)]">
           Home

@@ -6,7 +6,6 @@ export const useCartStore = create(
     (set) => ({
       itemCount: 0,
       setItemCount: (itemCount) => set({ itemCount }),
-      bump: () => set((s) => ({ itemCount: s.itemCount + 1 })),
     }),
     { name: 'theruux-cart-ui' },
   ),

@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { meApi } from '../../api/client';
-import { Button, Input, Skeleton } from '../../components/ui';
-import { useToastStore } from '../../store/toastStore';
+import { useEffect, useState } from 'react';
+import { MapPin, X } from '@phosphor-icons/react';
+import { Button, Input } from '../ui';
 import { requestGeolocation, reverseGeocode } from '../../lib/geolocation';
+import { useToastStore } from '../../store/toastStore';
 
 const empty = {
   label: 'Home',
@@ -13,7 +12,7 @@ const empty = {
   state: '',
   postalCode: '',
   country: 'IN',
-  isDefault: true,
+  isDefault: false,
 };
 
 const FIELDS = [
@@ -25,12 +24,9 @@ const FIELDS = [
   { key: 'country', label: 'Country', required: true },
 ];
 
-export function AddressesPage() {
-  const qc = useQueryClient();
+export function AddressDialog({ open, onClose, onSave, saving, locateRef }) {
   const push = useToastStore((s) => s.push);
-  const { data, isLoading } = useQuery({ queryKey: ['addresses'], queryFn: meApi.addresses });
   const [form, setForm] = useState(empty);
-  const [open, setOpen] = useState(false);
   const [locating, setLocating] = useState(false);
 
   const fillFromLocation = async () => {
@@ -57,75 +53,49 @@ export function AddressesPage() {
     }
   };
 
-  const create = useMutation({
-    mutationFn: meApi.createAddress,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['addresses'] });
-      setForm(empty);
-      setOpen(false);
-      push({ title: 'Address saved.' });
-    },
-    onError: (err) => push({ title: 'Could not save', message: err.message }),
+  useEffect(() => {
+    if (!open) return undefined;
+    if (locateRef) locateRef.current = fillFromLocation;
+    const onKey = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      if (locateRef) locateRef.current = null;
+    };
   });
 
-  const remove = useMutation({
-    mutationFn: meApi.deleteAddress,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['addresses'] }),
-  });
-
-  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  if (!open) return null;
 
   return (
-    <div>
-      <ul className="space-y-4">
-        {data?.items?.map((addr) => (
-          <li key={addr.id} className="border border-[var(--color-border)] p-4">
-            <p className="font-medium">
-              {addr.label || 'Address'} {addr.isDefault ? '· Default' : ''}
-            </p>
-            <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-              {addr.line1}
-              {addr.line2 ? `, ${addr.line2}` : ''}
-              <br />
-              {addr.city}, {addr.state} {addr.postalCode}
-              <br />
-              {addr.country}
-            </p>
-            <button
-              type="button"
-              className="mt-3 text-xs underline"
-              onClick={() => remove.mutate(addr.id)}
-            >
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {!open ? (
-        <Button
-          className="mt-6"
-          variant="secondary"
-          onClick={() => {
-            setOpen(true);
-            fillFromLocation();
-          }}
-        >
-          Add address
-        </Button>
-      ) : (
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-4 sm:items-center">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="address-dialog-title"
+        className="max-h-[90vh] w-full max-w-xl overflow-y-auto bg-[var(--color-bg)] p-6 shadow-xl"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <h2 id="address-dialog-title" className="text-xl font-semibold">
+            Add address
+          </h2>
+          <button type="button" aria-label="Close" className="inline-flex h-11 w-11 items-center justify-center" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
         <form
-          className="mt-8 max-w-2xl"
-          onSubmit={(e) => {
-            e.preventDefault();
-            create.mutate(form);
+          className="mt-6"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSave(form);
           }}
         >
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-[var(--color-text-muted)]">
               {locating ? 'Finding your location…' : 'Filled from your current location. Edit anything that looks off.'}
             </p>
-            <Button type="button" variant="secondary" loading={locating} onClick={fillFromLocation}>
+            <Button type="button" variant="secondary" loading={locating} onClick={fillFromLocation} trailingIcon={<MapPin size={14} weight="bold" />}>
               Use my location
             </Button>
           </div>
@@ -144,15 +114,15 @@ export function AddressesPage() {
             ))}
           </div>
           <div className="mt-6 flex gap-3">
-            <Button type="submit" loading={create.isPending}>
+            <Button type="submit" loading={saving}>
               Save address
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+            <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>
           </div>
         </form>
-      )}
+      </div>
     </div>
   );
 }

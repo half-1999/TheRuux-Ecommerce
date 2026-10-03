@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { catalogApi } from '../api/client';
 import { HeroSection } from '../components/home/HeroSection';
 import { NewArrivalsSection } from '../components/home/NewArrivalsSection';
@@ -8,6 +10,7 @@ import { CategoriesSection } from '../components/home/CategoriesSection';
 import { BestsellersSection } from '../components/home/BestsellersSection';
 import { InstagramSection } from '../components/home/InstagramSection';
 import { NewsletterSection } from '../components/home/NewsletterSection';
+import { ButterflyField } from '../components/home/ButterflyField';
 
 /**
  * Homepage order (PDF / Doc 02):
@@ -21,9 +24,21 @@ export function HomePage() {
     retry: 1,
   });
 
+  useEffect(() => {
+    const refresh = () => ScrollTrigger.refresh();
+    refresh();
+    const id = window.setTimeout(refresh, 350);
+    window.addEventListener('load', refresh);
+    return () => {
+      window.clearTimeout(id);
+      window.removeEventListener('load', refresh);
+    };
+  }, [data, isLoading]);
+
   return (
     <>
-      <HeroSection />
+      <ButterflyField />
+      <HeroSection section={data?.sections?.find((section) => section.key === 'hero')} />
       <NewArrivalsSection products={data?.newArrivals} loading={isLoading} />
       <LookbookCarousel />
       <UdbhavSection collection={data?.udbhav} />

@@ -22,6 +22,7 @@ import { AddressesPage } from './pages/account/AddressesPage';
 import { RequireAdmin } from './components/admin/RequireAdmin';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
+import { RequireAuth } from './components/auth/RequireAuth';
 
 const AdminDashboardPage = lazy(() =>
   import('./pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })),
@@ -118,7 +119,14 @@ function AnimatedRoutes() {
             <Route path="collections/:slug" element={<CollectionPage />} />
             <Route path="product/:slug" element={<ProductPage />} />
             <Route path="search" element={<SearchPage />} />
-            <Route path="checkout" element={<CheckoutPage />} />
+            <Route
+              path="checkout"
+              element={
+                <RequireAuth>
+                  <CheckoutPage />
+                </RequireAuth>
+              }
+            />
             <Route path="order-confirmation/:orderNumber" element={<OrderConfirmationPage />} />
             <Route path="about" element={<CmsPage slug="about-us" title="About Us" />} />
             <Route path="our-story" element={<CmsPage slug="our-story" title="Our Story" />} />

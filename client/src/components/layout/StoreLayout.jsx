@@ -13,8 +13,8 @@ export function StoreLayout() {
       <Header />
       <main className="flex-1">
         <Outlet />
+        <Footer />
       </main>
-      <Footer />
       <CartDrawer />
       <SearchOverlay />
       <ToastViewport />

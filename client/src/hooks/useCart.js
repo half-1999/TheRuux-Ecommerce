@@ -23,7 +23,6 @@ export function useAddToCart() {
   const push = useToastStore((s) => s.push);
   const openCart = useUiStore((s) => s.openCart);
   const setItemCount = useCartStore((s) => s.setItemCount);
-  const bump = useCartStore((s) => s.bump);
 
   return useMutation({
     mutationFn: cartApi.add,
@@ -31,7 +30,6 @@ export function useAddToCart() {
       qc.setQueryData(['cart'], data);
       const count = data.items?.reduce((n, i) => n + i.quantity, 0) || 0;
       setItemCount(count);
-      bump();
       push({ title: "IT'S YOURS NOW." });
       openCart();
     },

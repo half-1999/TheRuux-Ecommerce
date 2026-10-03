@@ -1,0 +1,133 @@
+.butterfly-field {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.butterfly {
+  position: absolute;
+  width: clamp(40px, 5.4vw, 72px);
+  height: auto;
+  opacity: 0.72;
+  transform: translate3d(0, 0, 0);
+}
+
+.butterfly svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.bf-wing {
+  transform-box: fill-box;
+}
+
+.bf-wing-l {
+  transform-origin: right center;
+}
+
+.bf-wing-r {
+  transform-origin: left center;
+}
+
+.is-flying .bf-wing-l,
+.is-flying .bf-wing-r {
+  animation: bf-flutter var(--flutter, 0.95s) ease-in-out infinite;
+}
+
+.is-flying .bf-wing-r {
+  animation-delay: 0.08s;
+}
+
+.butterfly-a {
+  top: 11.5rem;
+  left: 5vw;
+  opacity: 0.62;
+}
+
+.butterfly-b {
+  top: 46vh;
+  right: 4.5vw;
+  width: clamp(36px, 4.4vw, 58px);
+  opacity: 0.7;
+}
+
+.butterfly-c {
+  bottom: 12vh;
+  left: 14vw;
+  width: clamp(32px, 3.8vw, 52px);
+  opacity: 0.58;
+}
+
+.butterfly-d {
+  top: 13rem;
+  right: 18vw;
+  width: clamp(44px, 5.8vw, 78px);
+  opacity: 0.66;
+}
+
+.butterfly-e {
+  top: 62vh;
+  left: 4vw;
+  width: clamp(34px, 4vw, 56px);
+  opacity: 0.6;
+}
+
+.butterfly-f {
+  bottom: 18vh;
+  right: 12vw;
+  width: clamp(38px, 4.6vw, 64px);
+  opacity: 0.64;
+}
+
+@keyframes bf-flutter {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.42);
+  }
+}
+
+@media (max-width: 640px) {
+  .butterfly-a {
+    top: 8.5rem;
+    left: 3vw;
+  }
+
+  .butterfly-b {
+    top: 40vh;
+    right: 2vw;
+  }
+
+  .butterfly-c {
+    bottom: 8vh;
+    left: 8vw;
+  }
+
+  .butterfly-d {
+    top: 9.5rem;
+    right: 8vw;
+  }
+
+  .butterfly-e {
+    top: 58vh;
+    left: 2vw;
+  }
+
+  .butterfly-f {
+    bottom: 10vh;
+    right: 6vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bf-wing-l,
+  .bf-wing-r {
+    animation: none !important;
+  }
+}

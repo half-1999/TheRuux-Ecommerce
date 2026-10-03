@@ -282,6 +282,7 @@ async function seed() {
       ctaLabel: 'Explore',
       ctaHref: '/shop',
       mediaType: 'video',
+      mediaUrl: '/hero/dresses.mp4',
       sortOrder: 1,
     },
     {

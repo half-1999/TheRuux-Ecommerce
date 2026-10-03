@@ -30,14 +30,45 @@ export const createApp = () => {
   const app = express();
 
   app.set('trust proxy', 1);
-  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: false,
+      originAgentCluster: false,
+      strictTransportSecurity: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
+  // Lets an HTTPS site (Vercel) call this API on localhost during local checks.
+  app.use((req, res, next) => {
+    if (req.headers['access-control-request-private-network']) {
+      res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    }
+    next();
+  });
 
   const allowedOrigins = new Set([
     ...env.clientUrls.map((url) => new URL(url).origin),
     'https://the-ruux-ecommerce.vercel.app',
     'http://localhost:5173',
     'http://localhost:5174',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
   ]);
+
+  const isLocalDevOrigin = (value) => {
+    if (env.nodeEnv === 'production') return false;
+    try {
+      const parsed = new URL(value);
+      return (
+        parsed.protocol === 'http:' &&
+        (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')
+      );
+    } catch {
+      return false;
+    }
+  };
 
   app.use(
     cors({
@@ -52,7 +83,9 @@ export const createApp = () => {
         const vercelPreview = /^https:\/\/the-ruux-ecommerce(?:-[a-z0-9-]+)?\.vercel\.app$/.test(
           normalized,
         );
-        if (allowedOrigins.has(normalized) || vercelPreview) return callback(null, true);
+        if (allowedOrigins.has(normalized) || vercelPreview || isLocalDevOrigin(normalized)) {
+          return callback(null, true);
+        }
         console.warn(`[cors] blocked origin: ${origin}`);
         return callback(null, false);
       },

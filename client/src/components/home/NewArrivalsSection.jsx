@@ -19,7 +19,12 @@ export function NewArrivalsSection({ products, loading }) {
         duration: 0.85,
         stagger: 0.08,
         ease: 'power3.out',
-        scrollTrigger: { trigger: ref.current, start: 'top 78%' },
+        immediateRender: false,
+        scrollTrigger: {
+          trigger: ref.current,
+          start: 'top 82%',
+          once: true,
+        },
       });
     }, ref);
     return () => ctx.revert();
@@ -36,7 +41,7 @@ export function NewArrivalsSection({ products, loading }) {
             New Arrivals
           </p>
           <h2 className="mt-2 text-[length:var(--text-2xl)] font-semibold leading-tight md:text-[length:var(--text-3xl)]">
-            New pieces. Same attitude.
+            Scroll the drop. Feel the pace.
           </h2>
         </div>
         <Link

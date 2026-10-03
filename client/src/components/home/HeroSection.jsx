@@ -11,18 +11,25 @@ gsap.registerPlugin(ScrollTrigger);
 
 const SLIDES = [mood.hero, mood.udbhav, mood.bestsellers, mood.grid[0], mood.grid[2]];
 
-export function HeroSection() {
+/** Mixkit free-use clip: a woman choosing a dress in a clothing store. CMS mediaUrl replaces this when set. */
+const PUBLIC_HERO_VIDEO = '/hero/dresses.mp4';
+
+export function HeroSection({ section }) {
   const sectionRef = useRef(null);
   const mediaRef = useRef(null);
   const [index, setIndex] = useState(0);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const cmsVideo =
+    section?.mediaUrl && section.mediaUrl !== '/hero/hero.mp4' ? section.mediaUrl : '';
+  const videoUrl = videoFailed || section?.mediaType === 'image' ? '' : cmsVideo || PUBLIC_HERO_VIDEO;
 
   useEffect(() => {
-    if (prefersReducedMotion()) return undefined;
+    if (prefersReducedMotion() || videoUrl) return undefined;
     const id = window.setInterval(() => {
       setIndex((i) => (i + 1) % SLIDES.length);
     }, 5200);
     return () => window.clearInterval(id);
-  }, []);
+  }, [videoUrl]);
 
   useEffect(() => {
     if (prefersReducedMotion() || !sectionRef.current || !mediaRef.current) return undefined;
@@ -52,19 +59,36 @@ export function HeroSection() {
       className="relative flex min-h-[100svh] items-end overflow-hidden bg-[#0b0d0c] text-[#F5F2EC]"
     >
       <div ref={mediaRef} className="absolute inset-0 will-change-transform">
-        <AnimatePresence mode="sync">
-          <motion.img
-            key={SLIDES[index]}
-            src={SLIDES[index]}
-            alt=""
-            initial={{ opacity: 0, scale: 1.06 }}
-            animate={{ opacity: 0.72, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.1, ease: EASE }}
+        {videoUrl ? (
+          <video
+            key={videoUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster={mood.hero}
             className="absolute inset-0 h-full w-full object-cover"
-            fetchPriority="high"
-          />
-        </AnimatePresence>
+            aria-hidden="true"
+            onError={() => setVideoFailed(true)}
+          >
+            <source src={videoUrl} />
+          </video>
+        ) : (
+          <AnimatePresence mode="sync">
+            <motion.img
+              key={SLIDES[index]}
+              src={SLIDES[index]}
+              alt=""
+              initial={{ opacity: 0, scale: 1.06 }}
+              animate={{ opacity: 0.72, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.1, ease: EASE }}
+              className="absolute inset-0 h-full w-full object-cover"
+              fetchPriority="high"
+            />
+          </AnimatePresence>
+        )}
         <div
           className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40"
           aria-hidden
@@ -78,7 +102,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: EASE }}
-          className="mb-6 h-14 w-auto brightness-0 invert md:h-16"
+          className="h-25 w-auto object-contain brightness-0 invert"
         />
         <motion.p
           initial={{ opacity: 0, y: 24 }}
@@ -104,28 +128,32 @@ export function HeroSection() {
         >
           <Link
             to="/shop"
-            className="inline-flex min-h-11 items-center gap-2 bg-[#F5F2EC] px-6 py-2.5 text-sm font-medium tracking-wide text-[#141414] transition-[transform,background-color] duration-[var(--dur-fast)] ease-[var(--ease-editorial)] hover:bg-[#d8e0da] active:scale-[0.98]"
+            className="inline-flex min-h-11 items-center gap-2 border border-white/45 px-6 py-2.5 text-sm font-medium tracking-wide text-[#F5F2EC] hover:bg-[#F5F2EC] hover:text-[#141414] active:scale-[0.98]"
           >
             <span>Explore</span>
+
             <span
-              className="inline-flex h-7 w-7 items-center justify-center border border-[#141414]/25"
+              className="inline-flex h-7 w-7 items-center justify-center border border-[#5F6F64]/40"
               aria-hidden
             >
               <ArrowRight size={16} weight="bold" />
             </span>
           </Link>
+
         </motion.div>
 
-        <div className="mt-10 flex gap-2" aria-hidden>
-          {SLIDES.map((src, i) => (
-            <button
-              key={src}
-              type="button"
-              onClick={() => setIndex(i)}
-              className={`h-1 transition-all ${i === index ? 'w-10 bg-[#F5F2EC]' : 'w-4 bg-white/35'}`}
-            />
-          ))}
-        </div>
+        {!videoUrl ? (
+          <div className="mt-10 flex gap-2" aria-hidden>
+            {SLIDES.map((src, i) => (
+              <button
+                key={src}
+                type="button"
+                onClick={() => setIndex(i)}
+                className={`h-1 transition-all ${i === index ? 'w-10 bg-[#F5F2EC]' : 'w-4 bg-white/35'}`}
+              />
+            ))}
+          </div>
+        ) : null}
       </div>
     </section>
   );

@@ -77,6 +77,7 @@ export const wishlistApi = {
   get: () => api.get('/wishlist'),
   add: (productId) => api.post('/wishlist/items', { productId }),
   remove: (productId) => api.delete(`/wishlist/items/${productId}`),
+  merge: (productIds) => api.post('/wishlist/merge', { productIds }),
 };
 
 export const checkoutApi = {

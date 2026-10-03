@@ -1,29 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Heart } from '@phosphor-icons/react';
+import { Check, Heart } from '@phosphor-icons/react';
 import { catalogApi } from '../api/client';
 import { formatInr } from '../lib/media';
 import { Button, Skeleton } from '../components/ui';
-import { useAddToCart } from '../hooks/useCart';
+import { useAddToCart, useCart } from '../hooks/useCart';
 import { useToggleWishlist, useWishlist } from '../hooks/useWishlist';
-import { useAuthStore } from '../store/authStore';
 import { useBuyNowStore } from '../store/buyNowStore';
-import { useUiStore } from '../store/uiStore';
+import { useToastStore } from '../store/toastStore';
 
 export function ProductPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', slug],
     queryFn: () => catalogApi.product(slug),
   });
   const add = useAddToCart();
+  const { data: cart } = useCart();
   const { data: wishlist } = useWishlist();
   const toggleWish = useToggleWishlist();
   const setBuyNow = useBuyNowStore((s) => s.setItem);
-  const openCart = useUiStore((s) => s.openCart);
+  const push = useToastStore((s) => s.push);
 
   const [activeImage, setActiveImage] = useState(0);
   const [size, setSize] = useState(null);
@@ -69,11 +68,16 @@ export function ProductPage() {
     return product?.variants?.find((v) => v.colourName === c && v.size === s);
   }, [product, colour, size, colours, sizes]);
 
-  const wishActive = Boolean(user && wishlist?.items?.some((p) => p.id === product?.id));
+  const wishActive = Boolean(wishlist?.items?.some((p) => p.id === product?.id));
+  const inBag = Boolean(
+    cart?.items?.some(
+      (item) => item.product?.id === product?.id && item.variantId === selectedVariant?.id,
+    ),
+  );
 
   if (isLoading) {
     return (
-      <div className="mx-auto grid max-w-[var(--container)] gap-10 px-[var(--space-header-x)] pb-24 pt-28 lg:grid-cols-2">
+      <div className="mx-auto grid max-w-[var(--container)] gap-10 px-[var(--space-header-x)] pb-24 pt-50 lg:grid-cols-2">
         <Skeleton className="aspect-[3/4] w-full" />
         <div className="space-y-4">
           <Skeleton className="h-8 w-1/2" />
@@ -86,7 +90,7 @@ export function ProductPage() {
 
   if (error || !product) {
     return (
-      <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] py-28">
+      <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] pb-24 pt-50">
         <p className="text-lg font-semibold">WE LOOKED. NOTHING.</p>
         <Link to="/shop" className="mt-4 inline-block underline">
           Back to shop
@@ -100,18 +104,29 @@ export function ProductPage() {
     ? product.features.map((f) => `• ${f}`).join('\n')
     : '';
 
-  const addPayload = () => ({
-    productId: product.id,
-    variantId: selectedVariant.id,
-    quantity: 1,
-    ...(product.allowsPersonalization
-      ? { personalization: { textFront: personalization.textFront, textBack: personalization.textBack || undefined } }
-      : {}),
-  });
+  const addPayload = () => {
+    const textFront = personalization.textFront.trim();
+    const textBack = personalization.textBack.trim();
+    return {
+      productId: product.id,
+      variantId: selectedVariant.id,
+      quantity: 1,
+      ...(product.allowsPersonalization && textFront
+        ? { personalization: { textFront, ...(textBack ? { textBack } : {}) } }
+        : {}),
+    };
+  };
+
+  const requireFrontText = () => {
+    if (!product.allowsPersonalization || personalization.textFront.trim()) return true;
+    push({ title: 'Add front text', message: 'This piece needs a name on the front.' });
+    document.querySelector('input')?.focus();
+    return false;
+  };
 
   return (
-    <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] pb-24 pt-28">
-      <nav className="mb-8 text-xs uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
+    <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] pb-24 pt-50">
+      <nav className="mb-6 shrink-0 text-xs uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
         <Link to="/">Home</Link>
         <span className="mx-2">/</span>
         {product.collections?.[0] ? (
@@ -125,8 +140,8 @@ export function ProductPage() {
         <span>{product.title}</span>
       </nav>
 
-      <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
-        <div>
+      <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className="lg:sticky lg:top-36 lg:self-start">
           <div className="aspect-[3/4] overflow-hidden bg-[var(--color-bg-muted)]">
             {images[activeImage] ? (
               <img
@@ -137,7 +152,7 @@ export function ProductPage() {
             ) : null}
           </div>
           {images.length > 1 ? (
-            <div className="mt-3 flex gap-2 overflow-x-auto">
+            <div className="mt-3 flex shrink-0 gap-2 overflow-x-auto">
               {images.map((img, i) => (
                 <button
                   key={img.id || i}
@@ -154,7 +169,7 @@ export function ProductPage() {
           ) : null}
         </div>
 
-        <div className="lg:sticky lg:top-28 lg:self-start">
+        <div>
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-3xl font-semibold tracking-wide">{product.name}</h1>
@@ -162,11 +177,23 @@ export function ProductPage() {
             </div>
             <button
               type="button"
-              aria-label="Wishlist"
-              className="inline-flex h-11 w-11 items-center justify-center"
-              onClick={() => toggleWish.mutate({ productId: product.id, isActive: wishActive })}
+              aria-label={wishActive ? 'Saved to wishlist' : 'Wishlist'}
+              aria-pressed={wishActive}
+              className={`inline-flex h-11 items-center gap-2 px-2 ${
+                wishActive ? 'text-[#1c4332]' : ''
+              }`}
+              onClick={() => toggleWish.mutate({ productId: product.id, isActive: wishActive, product })}
             >
-              <Heart size={22} weight={wishActive ? 'fill' : 'light'} />
+              <Heart
+                size={22}
+                weight={wishActive ? 'fill' : 'light'}
+                className={wishActive ? 'text-[#1c4332]' : ''}
+              />
+              {wishActive ? (
+                <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)]">
+                  Saved
+                </span>
+              ) : null}
             </button>
           </div>
           <p className="mt-4 text-lg font-medium">{formatInr(product.price)}</p>
@@ -255,28 +282,29 @@ export function ProductPage() {
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button
-              className="flex-1"
+              className={`flex-1 ${inBag ? 'border-[#1c4332]' : ''}`}
               loading={add.isPending}
               disabled={!selectedVariant?.available}
               onClick={() => {
-                add.mutate(addPayload(), {
-                  onSuccess: () => openCart(),
-                });
+                if (!requireFrontText()) return;
+                add.mutate(addPayload());
               }}
             >
-              Add to Bag
+              {inBag ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <Check size={16} weight="bold" />
+                  Added
+                </span>
+              ) : (
+                'Add to Bag'
+              )}
             </Button>
             <Button
               variant="secondary"
               className="flex-1"
               disabled={!selectedVariant?.available}
               onClick={() => {
-                if (!selectedVariant) return;
-                if (product.allowsPersonalization && !personalization.textFront?.trim()) {
-                  // keep on page — browser required on input when form, here toast via alert-free path
-                  document.querySelector('input')?.focus();
-                  return;
-                }
+                if (!selectedVariant || !requireFrontText()) return;
                 setBuyNow({
                   productId: product.id,
                   variantId: selectedVariant.id,
@@ -290,8 +318,10 @@ export function ProductPage() {
                   lineTotal: Number(selectedVariant.price) || selectedVariant.price,
                   personalization: product.allowsPersonalization
                     ? {
-                        textFront: personalization.textFront,
-                        textBack: personalization.textBack || undefined,
+                        textFront: personalization.textFront.trim(),
+                        ...(personalization.textBack.trim()
+                          ? { textBack: personalization.textBack.trim() }
+                          : {}),
                       }
                     : undefined,
                 });

@@ -8,6 +8,45 @@ import { serializeProductListItem, serializeVariant, primaryImage } from '../uti
 import { formatMoney } from '../utils/money.js';
 
 const ACTIVE = 'active';
+const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+
+const attachSizes = async (products) => {
+  if (!products.length) return [];
+  const variants = await Variant.find({
+    productId: { $in: products.map((product) => product._id) },
+    isActive: true,
+  })
+    .select('productId size stockQty')
+    .lean();
+
+  const byProduct = new Map();
+  for (const variant of variants) {
+    const key = String(variant.productId);
+    if (!byProduct.has(key)) byProduct.set(key, []);
+    byProduct.get(key).push(variant);
+  }
+
+  return products.map((product) => {
+    const rows = byProduct.get(String(product._id)) || [];
+    const sizes = [];
+    for (const size of [...new Set(rows.map((row) => row.size))].sort(
+      (a, b) => SIZE_ORDER.indexOf(a) - SIZE_ORDER.indexOf(b),
+    )) {
+      const matches = rows.filter((row) => row.size === size);
+      const pick = matches.find((row) => row.stockQty > 0) || matches[0];
+      sizes.push({
+        size,
+        variantId: pick._id.toString(),
+        available: matches.some((row) => row.stockQty > 0),
+      });
+    }
+    return {
+      ...serializeProductListItem(product),
+      allowsPersonalization: Boolean(product.allowsPersonalization),
+      sizes,
+    };
+  });
+};
 
 export const listProducts = async (query) => {
   const {
@@ -74,7 +113,7 @@ export const listProducts = async (query) => {
   ]);
 
   return {
-    items: items.map(serializeProductListItem),
+    items: await attachSizes(items),
     page: Math.max(Number(page) || 1, 1),
     pageSize: limit,
     total,
@@ -155,7 +194,7 @@ export const getNewArrivals = async (limit = 4) => {
     .sort({ publishedAt: -1 })
     .limit(Math.min(Number(limit) || 4, 24))
     .lean();
-  return items.map(serializeProductListItem);
+  return attachSizes(items);
 };
 
 export const getBestsellers = async (limit = 12) => {
@@ -163,7 +202,7 @@ export const getBestsellers = async (limit = 12) => {
     .sort({ publishedAt: -1 })
     .limit(Math.min(Number(limit) || 12, 48))
     .lean();
-  return items.map(serializeProductListItem);
+  return attachSizes(items);
 };
 
 export const searchProducts = async (q) => {
@@ -209,9 +248,10 @@ export const searchProducts = async (q) => {
       .lean();
   }
 
+  const sized = await attachSizes(items);
   return {
-    items: items.map((p) => ({
-      ...serializeProductListItem(p),
+    items: sized.map((item) => ({
+      ...item,
       category: null,
     })),
   };

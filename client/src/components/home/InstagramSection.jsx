@@ -1,14 +1,13 @@
 import { mood } from '../../lib/media';
 
 export function InstagramSection({ links }) {
-  const tiles =
-    links?.length > 0
-      ? links
-      : mood.grid.slice(0, 6).map((src, i) => ({
-          id: `mood-ig-${i}`,
-          url: import.meta.env.VITE_INSTAGRAM_URL || 'https://instagram.com',
-          thumbUrl: src,
-        }));
+  const fallback = import.meta.env.VITE_INSTAGRAM_URL || 'https://instagram.com';
+  const tiles = mood.grid.slice(0, 6).map((src, i) => ({
+    id: links?.[i]?.id || `mood-ig-${i}`,
+    url: links?.[i]?.url || fallback,
+    thumbUrl: src,
+    caption: links?.[i]?.caption,
+  }));
 
   return (
     <section className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] py-[var(--space-section-y)]">

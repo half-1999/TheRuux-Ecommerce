@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { mood } from '../../lib/media';
+import mood13 from '../../assets/mood/mood-13.jpg';
+import mood14 from '../../assets/mood/mood-14.jpg';
+import mood15 from '../../assets/mood/mood-15.jpg';
 import { prefersReducedMotion } from '../../animations/motion';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -14,6 +17,9 @@ const LOOKS = [
   { src: mood.grid[3], label: 'REBEL' },
   { src: mood.grid[4], label: 'LIMITLESS' },
   { src: mood.grid[5], label: 'IDENTITY' },
+  { src: mood13, label: 'UDBHAV' },
+  { src: mood14, label: 'DENIM' },
+  { src: mood15, label: 'STUDIO' },
 ];
 
 /** Horizontal editorial carousel with scrub parallax — between New Arrivals and Udbhav. */
@@ -39,6 +45,7 @@ export function LookbookCarousel() {
           invalidateOnRefresh: true,
         },
       });
+      ScrollTrigger.refresh();
     }, sectionRef);
     return () => ctx.revert();
   }, []);
@@ -50,7 +57,7 @@ export function LookbookCarousel() {
           Lookbook
         </p>
         <h2 className="mt-2 max-w-xl text-[length:var(--text-2xl)] font-semibold md:text-[length:var(--text-3xl)]">
-          Scroll the drop. Feel the pace.
+          New pieces. Same attitude.
         </h2>
       </div>
       <div className="mt-10 pb-[var(--space-section-y)]">
@@ -64,7 +71,8 @@ export function LookbookCarousel() {
               <img
                 src={look.src}
                 alt={look.label}
-                loading="lazy"
+                loading="eager"
+                onLoad={() => ScrollTrigger.refresh()}
                 className="h-full w-full object-cover transition-transform duration-700 ease-[var(--ease-editorial)] group-hover:scale-[1.04]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />

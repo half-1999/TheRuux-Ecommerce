@@ -32,17 +32,17 @@ export function CmsPage({ slug: slugProp, title: titleProp }) {
   const body = data?.body;
 
   return (
-    <div>
+    <div className="h-screen mb-10">
       {(apiSlug === 'about-us' || apiSlug === 'our-story') && (
-        <div className="relative min-h-[40vh] overflow-hidden bg-[var(--color-bg-inverse)]">
+        <div className="relative overflow-hidden bg-[var(--color-bg-inverse)]">
           {/* REPLACE: brand story photography */}
           <img src={mood.about} alt="" className="absolute inset-0 h-full w-full object-cover opacity-55" />
-          <div className="relative z-10 mx-auto flex min-h-[40vh] max-w-[var(--container)] items-end px-[var(--space-header-x)] pb-10 pt-28 text-white">
+          <div className="relative z-10 mx-auto flex max-w-[var(--container)] items-end px-[var(--space-header-x)] pb-10 pt-28 text-white">
             <h1 className="text-[length:var(--text-display)] font-semibold">{title}</h1>
           </div>
         </div>
       )}
-      <div className="mx-auto max-w-[var(--container-narrow)] px-[var(--space-header-x)] pb-24 pt-16">
+      <div className="mx-auto max-w-[var(--container-narrow)] px-[var(--space-header-x)] pt-50 h-screen pb-24">
         {!(apiSlug === 'about-us' || apiSlug === 'our-story') ? (
           <>
             <nav className="text-xs uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
@@ -74,7 +74,7 @@ export function ContactPage() {
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="mx-auto max-w-[var(--container-narrow)] px-[var(--space-header-x)] pb-24 pt-28">
+    <div className="mx-auto max-w-[var(--container-narrow)] px-[var(--space-header-x)] pt-50 h-screen pb-24">
       <h1 className="text-3xl font-semibold">Contact</h1>
       <p className="mt-2 text-sm text-[var(--color-text-muted)]">We read every note.</p>
       <form

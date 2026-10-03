@@ -44,7 +44,7 @@ export function Footer() {
       <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] py-[var(--space-section-y)]">
         <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <img src="/brand/logo.png" alt="TheRuux" className="h-14 w-auto md:h-16" />
+            <img src="/brand/logo.png" alt="TheRuux" className="h-35 w-auto object-contain" />
             <p
               className="mt-4 font-[family-name:var(--font-script)] text-4xl text-[var(--color-brand)] md:text-5xl"
               aria-label="Beyond Boundaries"
@@ -114,12 +114,23 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col gap-2 border-t border-[var(--color-border)] pt-6 text-xs text-[var(--color-text-subtle)] md:flex-row md:justify-between">
-          <p>© {new Date().getFullYear()} TheRuux. All rights reserved.</p>
-          <div className="flex gap-4">
-            <Link to="/legal/privacy">Privacy</Link>
-            <Link to="/legal/terms">Terms</Link>
+        <div className="mt-12 flex flex-col gap-3 border-t border-[var(--color-border)] pt-6 text-xs text-[var(--color-text-subtle)] md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <p>© {new Date().getFullYear()} TheRuux. All rights reserved.</p>
+            <div className="flex gap-4">
+              <Link to="/legal/privacy">Privacy</Link>
+              <Link to="/legal/terms">Terms</Link>
+            </div>
           </div>
+          <a
+            href="https://thestackguy.in"
+            target="_blank"
+            rel="noreferrer"
+            className="self-end text-right transition-colors hover:text-[var(--color-text)] md:self-auto"
+          >
+            Designed and Developed By{' '}
+            <span className="font-bold text-[var(--color-text)]">The Stack Guy</span>
+          </a>
         </div>
       </div>
     </footer>

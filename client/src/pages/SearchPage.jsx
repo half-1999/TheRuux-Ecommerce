@@ -16,7 +16,7 @@ export function SearchPage() {
   });
 
   return (
-    <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] pb-24 pt-28">
+    <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] pt-50  pb-24">
       <h1 className="text-3xl font-semibold">Search</h1>
       <form
         key={initial}

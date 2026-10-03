@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const addressSchema = z.object({
-  fullName: z.string().trim().min(1).max(120),
-  phone: z.string().trim().min(8).max(32),
+  fullName: z.string().trim().max(120).optional().default(''),
+  phone: z.string().trim().max(32).optional().default(''),
   line1: z.string().trim().min(1).max(200),
   line2: z.string().trim().max(200).optional().default(''),
   city: z.string().trim().min(1).max(100),
@@ -13,14 +13,23 @@ export const addressSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
+const printText = z.preprocess(
+  (value) => {
+    if (typeof value !== 'string') return undefined;
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  },
+  z.string().min(1).max(24).optional(),
+);
+
 export const cartAddSchema = z.object({
   productId: z.string().min(1),
   variantId: z.string().min(1),
   quantity: z.coerce.number().int().min(1).default(1),
   personalization: z
     .object({
-      textFront: z.string().min(1).max(24).optional(),
-      textBack: z.string().min(1).max(24).optional(),
+      textFront: printText,
+      textBack: printText,
     })
     .optional(),
 });
@@ -31,7 +40,8 @@ export const checkoutCreateSchema = z.object({
   shippingAddress: addressSchema.optional(),
   billingAddress: addressSchema.optional(),
   addressId: z.string().optional(),
-  shippingMethodId: z.string().default('standard'),
+  shippingMethodId: z.enum(['standard', 'express']).default('standard'),
+  paymentMethod: z.enum(['razorpay', 'cod']).default('razorpay'),
   buyNow: z
     .object({
       productId: z.string(),

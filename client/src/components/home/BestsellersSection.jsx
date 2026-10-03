@@ -48,7 +48,7 @@ export function BestsellersSection() {
         </h2>
         <Link
           to="/bestsellers"
-          className="mt-8 inline-flex min-h-11 items-center gap-2 bg-[#F5F2EC] px-5 py-2.5 text-sm font-medium text-[#141414] transition-transform active:scale-[0.98]"
+          className="mt-8 inline-flex min-h-11 items-center gap-2 border border-white/45 px-6 py-2.5 text-sm font-medium tracking-wide text-[#F5F2EC] hover:bg-[#F5F2EC] hover:text-[#141414] active:scale-[0.98]"
         >
           <span>Shop bestsellers</span>
           <span className="inline-flex h-7 w-7 items-center justify-center border border-[#141414]/15" aria-hidden>

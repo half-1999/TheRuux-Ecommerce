@@ -42,7 +42,7 @@ export function CartDrawer() {
               <Link
                 to="/shop"
                 onClick={close}
-                className="mt-8 inline-flex min-h-11 items-center bg-[#141414] px-5 text-sm text-[#F5F2EC]"
+                className="mt-8 inline-flex min-h-11 items-center px-5 text-sm text-[#000000] border border-[#5F6F64]/40 hover:bg-[#000000] hover:text-[#000000] active:scale-[0.98]"
               >
                 Explore the shop
               </Link>
@@ -114,7 +114,7 @@ export function CartDrawer() {
                 clearBuyNow();
                 close();
               }}
-              className="mt-4 flex min-h-11 items-center justify-center bg-[#141414] text-sm font-medium text-[#F5F2EC] transition-transform active:scale-[0.98]"
+              className="mt-4 flex min-h-11 items-center justify-center text-sm font-medium text-[#000000] border border-[#5F6F64]/40 hover:bg-[#000000] hover:text-[#000000] active:scale-[0.98]"
             >
               Checkout
             </Link>
