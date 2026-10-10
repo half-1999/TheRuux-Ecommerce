@@ -178,14 +178,14 @@ export function OrderConfirmationPage() {
       <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
         <Link
           to="/shop"
-          className="inline-flex min-h-11 items-center border border-[#5F6F64]/40 px-5 text-sm text-[#000000] hover:bg-[#000000] hover:text-[#000000] active:scale-[0.98]"
+          className="inline-flex min-h-11 items-center border border-[#5F6F64]/40 px-5 text-sm text-[#000000] btn-hover active:scale-[0.98]"
         >
           Keep shopping
         </Link>
         {user ? (
           <Link
             to="/account/orders"
-            className="inline-flex min-h-11 items-center border border-[#5F6F64]/40 px-5 text-sm text-[#000000] hover:bg-[#000000] hover:text-[#000000] active:scale-[0.98]"
+            className="inline-flex min-h-11 items-center border border-[#5F6F64]/40 px-5 text-sm text-[#000000] btn-hover active:scale-[0.98]"
           >
             View orders
           </Link>

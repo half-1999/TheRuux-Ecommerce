@@ -1,13 +1,15 @@
 import clsx from 'clsx';
 
 /** Explicit hex colors — avoids CSS-var + Tailwind arbitrary text/bg failures (invisible buttons). */
+const hover =
+  'hover:border-[#141414] hover:bg-white hover:text-[#141414] focus-visible:border-[#141414] focus-visible:bg-white focus-visible:text-[#141414]';
+
 const variants = {
-  primary: 'bg-[#141414] text-[#F5F2EC] hover:bg-[#103020] hover:text-[#F5F2EC]',
-  secondary:
-    'border border-[#1a1a1a] bg-transparent text-[#141414] hover:bg-[#ebe6dc] hover:text-[#141414]',
-  ghost: 'bg-transparent text-[#141414] hover:bg-[#ebe6dc]',
-  inverse: 'bg-[#F5F2EC] text-[#141414] hover:bg-[#d8e0da] hover:text-[#141414]',
-  danger: 'bg-[#8b1e1e] text-[#F5F2EC] hover:opacity-90',
+  primary: `bg-[#141414] text-[#F5F2EC] ${hover}`,
+  secondary: `border border-[#1a1a1a] bg-transparent text-[#141414] ${hover}`,
+  ghost: `bg-transparent text-[#141414] ${hover}`,
+  inverse: `bg-[#F5F2EC] text-[#141414] ${hover}`,
+  danger: `bg-[#8b1e1e] text-[#F5F2EC] ${hover}`,
 };
 
 export function Button({

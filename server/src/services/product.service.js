@@ -186,7 +186,37 @@ export const getProductBySlug = async (slug) => {
     })),
     seo: product.seo,
     image: primaryImage(product),
+    related: await relatedProducts(product),
   };
+};
+
+const relatedProducts = async (product) => {
+  const categoryIds = (product.categoryIds || []).map((category) => category._id || category);
+  const collectionIds = (product.collectionIds || []).map((collection) => collection._id || collection);
+  const picked = [];
+  const exclude = [product._id];
+
+  const take = async (extra) => {
+    if (picked.length >= 4) return;
+    const rows = await Product.find({
+      status: ACTIVE,
+      _id: { $nin: exclude },
+      ...extra,
+    })
+      .sort({ isBestseller: -1, publishedAt: -1 })
+      .limit(4 - picked.length)
+      .lean();
+    for (const row of rows) {
+      exclude.push(row._id);
+      picked.push(row);
+    }
+  };
+
+  if (categoryIds.length) await take({ categoryIds: { $in: categoryIds } });
+  if (picked.length < 4 && collectionIds.length) await take({ collectionIds: { $in: collectionIds } });
+  if (picked.length < 4) await take({});
+
+  return attachSizes(picked.slice(0, 4));
 };
 
 export const getNewArrivals = async (limit = 4) => {

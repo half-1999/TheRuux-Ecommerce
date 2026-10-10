@@ -13,10 +13,8 @@ export function IconButton({
       type="button"
       aria-label={label}
       className={clsx(
-        'relative inline-flex h-11 w-11 items-center justify-center transition-[transform,color,background-color] duration-[var(--dur-fast)] ease-[var(--ease-editorial)] active:scale-[0.98]',
-        inverted
-          ? 'text-[#F5F2EC] hover:bg-white/10'
-          : 'text-[#141414] hover:bg-[var(--color-bg-muted)]',
+        'relative inline-flex h-11 w-11 items-center justify-center transition-[transform,color,background-color,border-color] duration-[var(--dur-fast)] ease-[var(--ease-editorial)] active:scale-[0.98] hover:bg-white hover:text-[#141414] focus-visible:bg-white focus-visible:text-[#141414]',
+        inverted ? 'text-[#F5F2EC]' : 'text-[#141414]',
         className,
       )}
       {...props}

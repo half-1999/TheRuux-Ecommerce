@@ -1,14 +1,10 @@
-import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { mood } from '../../lib/media';
 import mood13 from '../../assets/mood/mood-13.jpg';
 import mood14 from '../../assets/mood/mood-14.jpg';
 import mood15 from '../../assets/mood/mood-15.jpg';
 import { prefersReducedMotion } from '../../animations/motion';
-
-gsap.registerPlugin(ScrollTrigger);
+import './LookbookCarousel.css';
 
 const LOOKS = [
   { src: mood.grid[0], label: 'AARAMBH' },
@@ -22,36 +18,35 @@ const LOOKS = [
   { src: mood15, label: 'STUDIO' },
 ];
 
-/** Horizontal editorial carousel with scrub parallax — between New Arrivals and Udbhav. */
-export function LookbookCarousel() {
-  const sectionRef = useRef(null);
-  const trackRef = useRef(null);
+function Look({ look, hidden }) {
+  return (
+    <Link
+      to="/collections/udbhav"
+      tabIndex={hidden ? -1 : undefined}
+      aria-hidden={hidden || undefined}
+      className="group relative mr-4 block h-[58vh] w-[72vw] shrink-0 overflow-hidden bg-[var(--color-bg-muted)] sm:w-[42vw] md:mr-6 md:h-[70vh] md:w-[28vw]"
+    >
+      <img
+        src={look.src}
+        alt={hidden ? '' : look.label}
+        loading="eager"
+        className="h-full w-full object-cover transition-transform duration-700 ease-[var(--ease-editorial)] group-hover:scale-[1.04]"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+      <span className="absolute bottom-5 left-5 text-sm font-semibold tracking-[0.14em] text-[#F5F2EC]">
+        {look.label}
+      </span>
+    </Link>
+  );
+}
 
-  useEffect(() => {
-    if (prefersReducedMotion() || !sectionRef.current || !trackRef.current) return undefined;
-    const ctx = gsap.context(() => {
-      const track = trackRef.current;
-      const amount = () => Math.max(0, track.scrollWidth - window.innerWidth + 64);
-      gsap.to(track, {
-        x: () => -amount(),
-        ease: 'none',
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: 'top top',
-          end: () => `+=${amount()}`,
-          scrub: 0.85,
-          pin: true,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-        },
-      });
-      ScrollTrigger.refresh();
-    }, sectionRef);
-    return () => ctx.revert();
-  }, []);
+/** Continuous lookbook strip. The sequence is duplicated so the loop has no gap. */
+export function LookbookCarousel() {
+  const reduced = prefersReducedMotion();
+  const frames = reduced ? LOOKS : [...LOOKS, ...LOOKS];
 
   return (
-    <section ref={sectionRef} className="relative overflow-hidden bg-[var(--color-bg)]">
+    <section className="relative bg-[var(--color-bg)]">
       <div className="px-[var(--space-header-x)] pt-[var(--space-section-y)]">
         <p className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
           Lookbook
@@ -60,26 +55,14 @@ export function LookbookCarousel() {
           New pieces. Same attitude.
         </h2>
       </div>
-      <div className="mt-10 pb-[var(--space-section-y)]">
-        <div ref={trackRef} className="flex w-max gap-4 px-[var(--space-header-x)] will-change-transform md:gap-6">
-          {LOOKS.map((look) => (
-            <Link
-              key={look.label}
-              to="/collections/udbhav"
-              className="group relative block h-[58vh] w-[72vw] shrink-0 overflow-hidden bg-[var(--color-bg-muted)] sm:w-[42vw] md:h-[70vh] md:w-[28vw]"
-            >
-              <img
-                src={look.src}
-                alt={look.label}
-                loading="eager"
-                onLoad={() => ScrollTrigger.refresh()}
-                className="h-full w-full object-cover transition-transform duration-700 ease-[var(--ease-editorial)] group-hover:scale-[1.04]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-              <span className="absolute bottom-5 left-5 text-sm font-semibold tracking-[0.14em] text-[#F5F2EC]">
-                {look.label}
-              </span>
-            </Link>
+      <div
+        className={`mt-10 pb-[var(--space-section-y)] ${
+          reduced ? 'overflow-x-auto' : 'lookbook-viewport'
+        }`}
+      >
+        <div className={`lookbook-track ${reduced ? 'lookbook-track-static px-[var(--space-header-x)]' : ''}`}>
+          {frames.map((look, index) => (
+            <Look key={`${look.label}-${index}`} look={look} hidden={!reduced && index >= LOOKS.length} />
           ))}
         </div>
       </div>

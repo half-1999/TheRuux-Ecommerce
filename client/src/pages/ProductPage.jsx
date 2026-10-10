@@ -8,6 +8,8 @@ import { Button, Skeleton } from '../components/ui';
 import { useAddToCart, useCart } from '../hooks/useCart';
 import { useToggleWishlist, useWishlist } from '../hooks/useWishlist';
 import { useBuyNowStore } from '../store/buyNowStore';
+import { ProductInstagram } from '../components/product/ProductInstagram';
+import { ProductGrid } from '../components/product/ProductGrid';
 import { useToastStore } from '../store/toastStore';
 
 export function ProductPage() {
@@ -380,25 +382,22 @@ export function ProductPage() {
               ))}
           </div>
 
-          {product.instagramLinks?.length ? (
-            <div className="mt-10">
-              <p className="text-xs uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
-                Seen On
-              </p>
-              <p className="mt-1 text-sm text-[var(--color-text-muted)]">TheRuux, out there.</p>
-              <ul className="mt-3 space-y-2">
-                {product.instagramLinks.map((l) => (
-                  <li key={l.id}>
-                    <a href={l.url} target="_blank" rel="noreferrer" className="text-sm underline">
-                      {l.url}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
         </div>
       </div>
+      {product.related?.length ? (
+        <section className="mt-16 border-t border-[var(--color-border)] pt-12">
+          <p className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
+            Suggested
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-wide">
+            {product.categories?.[0]?.name ? `More ${product.categories[0].name}` : 'More from the edit'}
+          </h2>
+          <div className="mt-8">
+            <ProductGrid products={product.related.slice(0, 4)} />
+          </div>
+        </section>
+      ) : null}
+      <ProductInstagram product={product} />
     </div>
   );
 }

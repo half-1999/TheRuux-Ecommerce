@@ -290,7 +290,7 @@ export function CheckoutPage() {
     return (
       <div className="mx-auto max-w-lg px-[var(--space-header-x)] pt-50 h-screen pb-24">
         <p className="text-lg font-semibold">NOTHING HERE YET.</p>
-        <Link to="/shop" className="mt-4 inline-block border border-[#5F6F64]/40 hover:bg-[#000000] hover:text-[#000000] active:scale-[0.98] px-5 py-2 text-sm text-[#000000]">
+        <Link to="/shop" className="mt-4 inline-block border border-[#5F6F64]/40 btn-hover active:scale-[0.98] px-5 py-2 text-sm text-[#000000]">
           Shop All
         </Link>
       </div>

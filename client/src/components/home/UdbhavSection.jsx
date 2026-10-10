@@ -68,7 +68,7 @@ export function UdbhavSection({ collection }) {
         <p className="mt-6 max-w-md text-sm leading-relaxed text-white/70">{story}</p>
         <Link
           to={href}
-          className="mt-10 inline-flex w-fit min-h-11 items-center gap-2 border border-white/40 px-5 py-2.5 text-sm font-medium tracking-wide text-[#F5F2EC] transition-colors hover:bg-[#F5F2EC] hover:text-[#141414]"
+          className="mt-10 inline-flex w-fit min-h-11 items-center gap-2 border border-white/40 px-5 py-2.5 text-sm font-medium tracking-wide text-[#F5F2EC] btn-hover"
         >
           <span>Explore {title}</span>
           <span className="inline-flex h-7 w-7 items-center justify-center border border-current/20" aria-hidden>

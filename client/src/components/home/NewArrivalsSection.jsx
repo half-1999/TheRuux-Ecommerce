@@ -52,7 +52,7 @@ export function NewArrivalsSection({ products, loading }) {
         </Link>
       </div>
       <div data-arrive>
-        <ProductGrid products={products?.slice(0, 4)} loading={loading} />
+        <ProductGrid products={products?.slice(0, 4)} loading={loading} actions={false} />
       </div>
     </section>
   );

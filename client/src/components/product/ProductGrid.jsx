@@ -3,7 +3,7 @@ import { ProductCard } from './ProductCard';
 import { Skeleton } from '../ui/Skeleton';
 import { staggerContainer } from '../../animations/motion';
 
-export function ProductGrid({ products, loading, empty = 'WE LOOKED. NOTHING.' }) {
+export function ProductGrid({ products, loading, empty = 'WE LOOKED. NOTHING.', actions = true }) {
   if (loading) {
     return (
       <div className="grid grid-cols-2 gap-[var(--space-card-gap)] md:grid-cols-3 lg:grid-cols-4">
@@ -36,7 +36,7 @@ export function ProductGrid({ products, loading, empty = 'WE LOOKED. NOTHING.' }
       viewport={{ once: true, margin: '-40px' }}
     >
       {products.map((p) => (
-        <ProductCard key={p.id || p.slug} product={p} />
+        <ProductCard key={p.id || p.slug} product={p} actions={actions} />
       ))}
     </motion.div>
   );

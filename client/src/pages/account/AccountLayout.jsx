@@ -34,13 +34,13 @@ export function AccountLayout() {
         <div className="mt-8 flex gap-3">
           <Link
             to="/auth/login"
-            className="inline-flex min-h-11 items-center px-5 text-sm text-[#000000] border border-[#5F6F64]/40 hover:bg-[#000000] hover:text-[#000000] active:scale-[0.98]"  
+            className="inline-flex min-h-11 items-center px-5 text-sm text-[#000000] border border-[#5F6F64]/40 btn-hover active:scale-[0.98]"  
           >
             Sign in
           </Link>
           <Link
             to="/auth/register"
-            className="inline-flex min-h-11 items-center px-5 text-sm text-[#000000] border border-[#5F6F64]/40 hover:bg-[#000000] hover:text-[#000000] active:scale-[0.98]"
+            className="inline-flex min-h-11 items-center px-5 text-sm text-[#000000] border border-[#5F6F64]/40 btn-hover active:scale-[0.98]"
           >
             Register
           </Link>

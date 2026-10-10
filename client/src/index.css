@@ -62,6 +62,32 @@ button {
   font: inherit;
 }
 
+button,
+.admin-btn,
+.btn-hover {
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+button:not(:disabled):hover,
+button:not(:disabled):focus-visible,
+.admin-btn:not(:disabled):hover,
+.admin-btn:not(:disabled):focus-visible,
+.btn-hover:hover,
+.btn-hover:focus-visible {
+  background-color: #ffffff;
+  color: #141414;
+  border-color: #141414;
+}
+
+button:disabled,
+.admin-btn:disabled {
+  cursor: not-allowed;
+}
+
 /* Soft brand-green cast on headings. Pale sage on dark sections so type stays readable. */
 h1,
 h2,
