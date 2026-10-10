@@ -10,7 +10,7 @@ import { CategoriesSection } from '../components/home/CategoriesSection';
 import { BestsellersSection } from '../components/home/BestsellersSection';
 import { InstagramSection } from '../components/home/InstagramSection';
 import { NewsletterSection } from '../components/home/NewsletterSection';
-import { ButterflyField } from '../components/home/ButterflyField';
+import { LeafField } from '../components/home/LeafField';
 
 /**
  * Homepage order (PDF / Doc 02):
@@ -37,7 +37,7 @@ export function HomePage() {
 
   return (
     <>
-      <ButterflyField />
+      <LeafField />
       <HeroSection section={data?.sections?.find((section) => section.key === 'hero')} />
       <NewArrivalsSection products={data?.newArrivals} loading={isLoading} />
       <LookbookCarousel />

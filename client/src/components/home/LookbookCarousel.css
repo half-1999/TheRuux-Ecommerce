@@ -1,3 +1,7 @@
+.lookbook-stage {
+  position: relative;
+}
+
 .lookbook-viewport {
   overflow: hidden;
 }
@@ -5,30 +9,48 @@
 .lookbook-track {
   display: flex;
   width: max-content;
-  animation: lookbook-rtl 42s linear infinite;
   will-change: transform;
 }
 
-.lookbook-track:hover {
-  animation-play-state: paused;
-}
-
 .lookbook-track-static {
-  animation: none;
   width: max-content;
 }
 
-@keyframes lookbook-rtl {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
+.lookbook-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #141414;
+  background: #ffffff;
+  color: #141414;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity 180ms ease;
+}
+
+.lookbook-nav-prev {
+  left: 1rem;
+}
+
+.lookbook-nav-next {
+  right: 1rem;
+}
+
+.lookbook-stage.is-paused .lookbook-nav,
+.lookbook-stage:focus-within .lookbook-nav {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lookbook-track {
-    animation: none;
+  .lookbook-nav {
+    opacity: 1;
+    pointer-events: auto;
   }
 }

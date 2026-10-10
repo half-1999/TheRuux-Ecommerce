@@ -147,7 +147,7 @@ export function ProductPage() {
       </nav>
 
       <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
-        <div className="lg:sticky lg:top-36 lg:self-start">
+        <div className="lg:sticky lg:top-[var(--header-height)] lg:self-start">
           <div className="aspect-[3/4] overflow-hidden bg-[var(--color-bg-muted)]">
             {images[activeImage] ? (
               <img

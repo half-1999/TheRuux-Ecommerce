@@ -438,7 +438,7 @@ export function CheckoutPage() {
         </form>
       </div>
 
-      <aside className="h-fit border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-6 lg:sticky lg:top-28">
+      <aside className="h-fit border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-6 lg:sticky lg:top-[var(--header-height)]">
         <p className="text-xs uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
           {buyNowMode ? 'Buying now' : 'Order summary'}
         </p>

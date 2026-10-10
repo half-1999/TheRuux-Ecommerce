@@ -1,0 +1,149 @@
+.leaf-field {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.leaf {
+  position: absolute;
+  top: -8vh;
+  width: 37.4px;
+  opacity: 0;
+  animation: leaf-fall linear infinite;
+}
+
+.leaf svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.leaf-a {
+  left: 8vw;
+  width: 39.6px;
+  animation-duration: 26s;
+  animation-delay: -4s;
+}
+
+.leaf-b {
+  left: 46vw;
+  width: 30.8px;
+  animation-duration: 32s;
+  animation-delay: -16s;
+}
+
+.leaf-c {
+  left: 78vw;
+  width: 35.2px;
+  animation-duration: 29s;
+  animation-delay: -10s;
+}
+
+@keyframes leaf-fall {
+  0% {
+    transform: translate3d(0, -6vh, 0) rotate(-12deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.78;
+  }
+  35% {
+    transform: translate3d(16px, 34vh, 0) rotate(28deg);
+  }
+  68% {
+    transform: translate3d(-10px, 68vh, 0) rotate(72deg);
+    opacity: 0.72;
+  }
+  100% {
+    transform: translate3d(8px, 112vh, 0) rotate(128deg);
+    opacity: 0;
+  }
+}
+
+.leaf-b {
+  animation-name: leaf-fall-b;
+}
+
+.leaf-c {
+  animation-name: leaf-fall-c;
+}
+
+@keyframes leaf-fall-b {
+  0% {
+    transform: translate3d(0, -8vh, 0) rotate(18deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.7;
+  }
+  40% {
+    transform: translate3d(-18px, 40vh, 0) rotate(-24deg);
+  }
+  74% {
+    transform: translate3d(12px, 74vh, 0) rotate(-70deg);
+    opacity: 0.66;
+  }
+  100% {
+    transform: translate3d(-6px, 114vh, 0) rotate(-130deg);
+    opacity: 0;
+  }
+}
+
+@keyframes leaf-fall-c {
+  0% {
+    transform: translate3d(0, -4vh, 0) rotate(8deg);
+    opacity: 0;
+  }
+  14% {
+    opacity: 0.74;
+  }
+  46% {
+    transform: translate3d(10px, 46vh, 0) rotate(48deg);
+  }
+  80% {
+    transform: translate3d(-14px, 82vh, 0) rotate(96deg);
+    opacity: 0.62;
+  }
+  100% {
+    transform: translate3d(4px, 116vh, 0) rotate(150deg);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .leaf-a {
+    left: 6vw;
+    width: 30.8px;
+  }
+
+  .leaf-b {
+    left: 42vw;
+    width: 24.2px;
+  }
+
+  .leaf-c {
+    left: 74vw;
+    width: 28.6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaf {
+    animation: none;
+    opacity: 0.45;
+  }
+
+  .leaf-a {
+    top: 22vh;
+  }
+
+  .leaf-b {
+    top: 48vh;
+  }
+
+  .leaf-c {
+    top: 70vh;
+  }
+}

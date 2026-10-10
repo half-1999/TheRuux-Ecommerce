@@ -48,6 +48,10 @@ body {
   min-height: 100vh;
 }
 
+.pt-50 {
+  padding-top: var(--header-offset);
+}
+
 a {
   color: inherit;
   text-decoration: none;

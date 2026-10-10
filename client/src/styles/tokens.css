@@ -70,6 +70,8 @@
   --container: 1440px;
   --container-narrow: 720px;
   --gutter: clamp(1rem, 3vw, 2rem);
+  --header-height: 9rem;
+  --header-offset: 10.5rem;
 
   /* Z-index */
   --z-base: 0;
@@ -87,4 +89,11 @@
   --dur-fast: 150ms;
   --dur-mid: 280ms;
   --dur-slow: 500ms;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --header-height: 13rem;
+    --header-offset: 14.75rem;
+  }
 }
