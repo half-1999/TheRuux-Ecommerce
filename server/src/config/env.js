@@ -40,9 +40,12 @@ const schema = z.object({
     .string()
     .optional()
     .transform((v) => v === 'true'),
-  RAZORPAY_KEY_ID: z.preprocess(emptyToUndefined, z.string().optional()),
-  RAZORPAY_KEY_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
-  RAZORPAY_WEBHOOK_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
+  CASHFREE_APP_ID: z.preprocess(emptyToUndefined, z.string().optional()),
+  CASHFREE_SECRET_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
+  CASHFREE_ENV: z.preprocess(
+    (value) => (value === '' || value == null ? 'sandbox' : value),
+    z.enum(['sandbox', 'production']),
+  ),
   CLOUDINARY_CLOUD_NAME: z.preprocess(emptyToUndefined, z.string().optional()),
   CLOUDINARY_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
   CLOUDINARY_API_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
@@ -77,9 +80,9 @@ export const env = {
   clientUrl: parsed.data.CLIENT_URL[0],
   publicApiUrl: parsed.data.PUBLIC_API_URL || `http://localhost:${parsed.data.PORT}`,
   cookieSecure: parsed.data.COOKIE_SECURE ?? parsed.data.NODE_ENV === 'production',
-  razorpayKeyId: parsed.data.RAZORPAY_KEY_ID,
-  razorpayKeySecret: parsed.data.RAZORPAY_KEY_SECRET,
-  razorpayWebhookSecret: parsed.data.RAZORPAY_WEBHOOK_SECRET,
+  cashfreeAppId: parsed.data.CASHFREE_APP_ID,
+  cashfreeSecretKey: parsed.data.CASHFREE_SECRET_KEY,
+  cashfreeEnv: parsed.data.CASHFREE_ENV,
   cloudinary: {
     cloudName: parsed.data.CLOUDINARY_CLOUD_NAME,
     apiKey: parsed.data.CLOUDINARY_API_KEY,
@@ -97,9 +100,7 @@ export const env = {
   sentryDsn: parsed.data.SENTRY_DSN,
   lowStockThreshold: parsed.data.LOW_STOCK_THRESHOLD,
   shippingStandardInr: parsed.data.SHIPPING_STANDARD_INR,
-  razorpayEnabled: Boolean(
-    parsed.data.RAZORPAY_KEY_ID && parsed.data.RAZORPAY_KEY_SECRET,
-  ),
+  cashfreeEnabled: Boolean(parsed.data.CASHFREE_APP_ID && parsed.data.CASHFREE_SECRET_KEY),
   cloudinaryEnabled: Boolean(
     parsed.data.CLOUDINARY_CLOUD_NAME &&
       parsed.data.CLOUDINARY_API_KEY &&

@@ -3,12 +3,33 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { checkoutApi, meApi } from '../api/client';
 import { formatInr } from '../lib/media';
+import { orderStatusLabel } from '../lib/orderStatus';
 import { AddressDialog } from '../components/commerce/AddressDialog';
 import { Button, Input } from '../components/ui';
 import { useCart } from '../hooks/useCart';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
 import { useBuyNowStore } from '../store/buyNowStore';
+
+function PaymentOutcome({ payment, checking }) {
+  if (checking) return <p className="mt-4 text-sm">Checking payment…</p>;
+  if (!payment?.orderNumber) return null;
+  return (
+    <div className="mt-6 border border-[var(--color-border)] px-5 py-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
+        Order
+      </p>
+      <p className="mt-2 text-lg font-semibold">{payment.orderNumber}</p>
+      <p className="mt-2 text-sm">
+        {orderStatusLabel(payment.status)} · {payment.paymentStatus}
+      </p>
+      {payment.reason ? <p className="mt-2 text-sm text-[var(--color-text-muted)]">{payment.reason}</p> : null}
+      <Link to={`/account/orders/${payment.orderNumber}`} className="mt-4 inline-block text-sm underline">
+        View this order
+      </Link>
+    </div>
+  );
+}
 
 function addressLines(addr) {
   if (!addr) return '';
@@ -19,6 +40,7 @@ function addressLines(addr) {
 
 export function CheckoutPage() {
   const [searchParams] = useSearchParams();
+  const cashfreeReturn = searchParams.get('cashfree_order');
   const buyNowMode = searchParams.get('mode') === 'buynow';
   const buyNowItem = useBuyNowStore((s) => s.item);
   const clearBuyNow = useBuyNowStore((s) => s.clear);
@@ -28,6 +50,7 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [paymentResult, setPaymentResult] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogKey, setDialogKey] = useState(0);
   const locateRef = useRef(null);
@@ -39,6 +62,12 @@ export function CheckoutPage() {
   const { data: commerceOptions } = useQuery({
     queryKey: ['commerce-options'],
     queryFn: checkoutApi.options,
+  });
+  const returnConfirm = useQuery({
+    queryKey: ['cashfree-return', cashfreeReturn],
+    queryFn: () => checkoutApi.confirmPayment({ cashfreeOrderId: cashfreeReturn }),
+    enabled: Boolean(cashfreeReturn),
+    retry: false,
   });
   const shippingOptions = commerceOptions?.shippingMethods || [];
   const paymentOptions = commerceOptions?.paymentMethods || [];
@@ -60,6 +89,25 @@ export function CheckoutPage() {
   });
   const profilePhone = profile?.user?.phone || user?.phone || '';
   const phone = phoneEdited ? form.phone : profilePhone || form.phone;
+
+  useEffect(() => {
+    if (!returnConfirm.data?.orderNumber) return undefined;
+    qc.invalidateQueries({ queryKey: ['orders'] });
+    if (returnConfirm.data.paymentStatus !== 'PAID') return undefined;
+    const orderNumber = returnConfirm.data.orderNumber;
+    window.sessionStorage.setItem(
+      `theruux-order-${orderNumber}`,
+      JSON.stringify({
+        orderNumber,
+        status: 'PAID',
+        paymentStatus: 'PAID',
+        paymentMethod: 'cashfree',
+        paymentLabel: 'Cashfree',
+      }),
+    );
+    navigate(`/order-confirmation/${orderNumber}`, { replace: true });
+    return undefined;
+  }, [returnConfirm.data, navigate, qc]);
 
   const { data: addressBook } = useQuery({
     queryKey: ['addresses'],
@@ -124,13 +172,14 @@ export function CheckoutPage() {
     push({ title: 'Address added.' });
   };
 
-  const rememberOrder = (orderNumber) => {
+  const rememberOrder = (orderNumber, paid = true) => {
+    const cash = activePayment?.id === 'cod';
     const snapshot = {
       orderNumber,
       email: form.email,
       phone,
-      status: activePayment?.id === 'cod' ? 'PROCESSING' : 'PAID',
-      paymentStatus: activePayment?.id === 'cod' ? 'PENDING' : 'PAID',
+      status: cash ? 'PROCESSING' : paid ? 'PAID' : 'PENDING_PAYMENT',
+      paymentStatus: cash || !paid ? 'PENDING' : 'PAID',
       paymentMethod: activePayment?.id,
       paymentLabel: activePayment?.label,
       shippingMethodId: activeShipping?.id,
@@ -207,91 +256,117 @@ export function CheckoutPage() {
       }
 
       const result = await checkoutApi.create(payload);
-      rememberOrder(result.orderNumber);
 
-      if (result.payment?.provider !== 'razorpay') {
+      if (result.payment?.provider !== 'cashfree') {
+        rememberOrder(result.orderNumber, false);
         clearBuyNow();
         qc.invalidateQueries({ queryKey: ['cart'] });
         qc.invalidateQueries({ queryKey: ['product'] });
         push({
           title: 'GOOD CHOICE.',
-          message:
-            result.payment?.provider === 'cod'
-              ? 'Pay with cash when the order arrives.'
-              : `${result.payment?.label || 'Payment'} selected.`,
+          message: 'Pay with cash when the order arrives.',
         });
         navigate(`/order-confirmation/${result.orderNumber}`);
         return;
       }
 
-      if (result.payment?.mock || !result.payment?.keyId) {
-        await checkoutApi.confirmPayment({
-          razorpayOrderId: result.payment.razorpayOrderId,
-          razorpayPaymentId: `pay_mock_${Date.now()}`,
-          razorpaySignature: 'dev',
+      if (!window.Cashfree) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Could not load Cashfree checkout'));
+          document.body.appendChild(script);
         });
-        clearBuyNow();
-        qc.invalidateQueries({ queryKey: ['cart'] });
-        qc.invalidateQueries({ queryKey: ['product'] });
-        push({ title: 'GOOD CHOICE.', message: "We'll handle the rest." });
-        navigate(`/order-confirmation/${result.orderNumber}`);
+      }
+
+      const cashfree = window.Cashfree({ mode: result.payment.mode || 'sandbox' });
+      const checkoutResult = await cashfree.checkout({
+        paymentSessionId: result.payment.paymentSessionId,
+        redirectTarget: '_modal',
+      });
+      if (checkoutResult?.error) {
+        const settled = await checkoutApi.abandonPayment({
+          cashfreeOrderId: result.payment.cashfreeOrderId,
+        });
+        if (settled.paymentStatus === 'PAID') {
+          rememberOrder(settled.orderNumber, true);
+          clearBuyNow();
+          qc.invalidateQueries({ queryKey: ['cart'] });
+          qc.invalidateQueries({ queryKey: ['product'] });
+          push({ title: 'GOOD CHOICE.', message: "We'll handle the rest." });
+          navigate(`/order-confirmation/${settled.orderNumber}`);
+          return;
+        }
+        setPaymentResult(settled);
+        qc.invalidateQueries({ queryKey: ['orders'] });
+        push({
+          title: orderStatusLabel(settled.status),
+          message: settled.reason || 'Payment was not completed. Your bag is unchanged — you can try again.',
+        });
         return;
       }
 
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.onload = resolve;
-        script.onerror = reject;
-        document.body.appendChild(script);
+      const confirmed = await checkoutApi.confirmPayment({
+        cashfreeOrderId: result.payment.cashfreeOrderId,
       });
-
-      const RazorpayCheckout = window.Razorpay;
-      await new Promise((resolve, reject) => {
-        const rzp = new RazorpayCheckout({
-          key: result.payment.keyId,
-          amount: result.payment.amountPaise,
-          currency: result.payment.currency,
-          name: 'TheRuux',
-          description: result.orderNumber,
-          order_id: result.payment.razorpayOrderId,
-          handler: async (response) => {
-            try {
-              await checkoutApi.confirmPayment({
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-              });
-              clearBuyNow();
-              qc.invalidateQueries({ queryKey: ['cart'] });
-              qc.invalidateQueries({ queryKey: ['product'] });
-              push({ title: 'GOOD CHOICE.', message: "We'll handle the rest." });
-              navigate(`/order-confirmation/${result.orderNumber}`);
-              resolve();
-            } catch (err) {
-              reject(err);
-            }
-          },
+      if (confirmed.paymentStatus !== 'PAID') {
+        setPaymentResult(confirmed);
+        qc.invalidateQueries({ queryKey: ['orders'] });
+        push({
+          title: orderStatusLabel(confirmed.status),
+          message: confirmed.reason || 'Payment was not completed. Your bag is unchanged — you can try again.',
         });
-        rzp.open();
-      });
+        return;
+      }
+      rememberOrder(confirmed.orderNumber, true);
+      clearBuyNow();
+      qc.invalidateQueries({ queryKey: ['cart'] });
+      qc.invalidateQueries({ queryKey: ['product'] });
+      push({ title: 'GOOD CHOICE.', message: "We'll handle the rest." });
+      navigate(`/order-confirmation/${confirmed.orderNumber}`);
     } catch (err) {
-      push({ title: 'Checkout failed', message: err.message });
+      push({
+        title: 'Checkout failed',
+        message: err.message,
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  if (!buyNowMode && isLoading) {
+  if (!buyNowMode && isLoading && !cashfreeReturn) {
     return <div className="px-[var(--space-header-x)] py-28">Loading bag…</div>;
   }
 
-  if (!lineItems.length) {
+  const returnedPayment =
+    returnConfirm.data?.orderNumber && returnConfirm.data.paymentStatus !== 'PAID'
+      ? returnConfirm.data
+      : paymentResult?.orderNumber && paymentResult.paymentStatus !== 'PAID'
+        ? paymentResult
+        : null;
+
+  if (!lineItems.length && !returnedPayment && !(cashfreeReturn && returnConfirm.isFetching)) {
     return (
       <div className="mx-auto max-w-lg px-[var(--space-header-x)] pt-50 h-screen pb-24">
         <p className="text-lg font-semibold">NOTHING HERE YET.</p>
         <Link to="/shop" className="mt-4 inline-block border border-[#5F6F64]/40 btn-hover active:scale-[0.98] px-5 py-2 text-sm text-[#000000]">
           Shop All
+        </Link>
+      </div>
+    );
+  }
+
+  if (!lineItems.length) {
+    return (
+      <div className="mx-auto max-w-lg px-[var(--space-header-x)] pt-50 pb-24">
+        <h1 className="text-3xl font-semibold">Checkout</h1>
+        <PaymentOutcome payment={returnedPayment} checking={Boolean(cashfreeReturn) && returnConfirm.isFetching} />
+        {returnConfirm.isError ? (
+          <p className="mt-4 text-sm text-[var(--color-text)]">{returnConfirm.error.message}</p>
+        ) : null}
+        <Link to="/account/orders" className="mt-6 inline-block text-sm underline">
+          Order history
         </Link>
       </div>
     );
@@ -304,6 +379,10 @@ export function CheckoutPage() {
           {buyNowMode ? 'Express checkout' : 'Bag checkout'}
         </p>
         <h1 className="mt-2 text-3xl font-semibold">Checkout</h1>
+        <PaymentOutcome payment={returnedPayment} checking={Boolean(cashfreeReturn) && returnConfirm.isFetching} />
+        {returnConfirm.isError ? (
+          <p className="mt-4 text-sm text-[var(--color-text)]">{returnConfirm.error.message}</p>
+        ) : null}
         <form onSubmit={onSubmit} className="mt-10 space-y-8">
           <div className="space-y-5">
             <Input label="Email" type="email" required value={form.email} onChange={set('email')} />

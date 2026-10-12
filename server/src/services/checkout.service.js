@@ -1,17 +1,17 @@
 import mongoose from 'mongoose';
 import { Order } from '../models/Order.js';
-import { Payment } from '../models/Payment.js';
+import { CheckoutSession } from '../models/CheckoutSession.js';
 import { Product } from '../models/Product.js';
 import { Variant } from '../models/Variant.js';
 import { reserveOrderStock } from './inventory.service.js';
 import { Address } from '../models/Address.js';
 import { Settings } from '../models/Settings.js';
 import { AppError } from '../utils/errors.js';
-import { formatMoney, toMoney, toPaise } from '../utils/money.js';
+import { formatMoney, toMoney } from '../utils/money.js';
 import { generateOrderNumber } from '../utils/orderNumber.js';
 import { unitPriceFor, primaryImage } from '../utils/serializers.js';
 import { findOrCreateCart, serializeCart, clearCart } from './cart.service.js';
-import { createRazorpayOrder } from './razorpay.service.js';
+import { createCashfreeOrder } from './cashfree.service.js';
 import { sendOrderConfirmation } from './email.service.js';
 import { captureException } from '../config/sentry.js';
 import { env } from '../config/env.js';
@@ -79,7 +79,7 @@ export const createCheckout = async ({
   billingAddress,
   addressId,
   shippingMethodId = 'standard',
-  paymentMethod = 'razorpay',
+  paymentMethod = 'cashfree',
   buyNow,
 }) => {
   const cart = await findOrCreateCart({ userId, guestToken });
@@ -115,8 +115,10 @@ export const createCheckout = async ({
   const billAddr = billingAddress ? snapAddress(billingAddress) : shipAddr;
   const resolved = await resolveCheckoutMethods({ shippingMethodId, paymentMethod });
   const shipping = toMoney(resolved.shipping.priceInr);
-  const isRazorpay = resolved.payment.id === 'razorpay';
-  const isCod = resolved.payment.id === 'cod';
+  const isCashfree = resolved.payment.id === 'cashfree';
+  if (!isCashfree && resolved.payment.id !== 'cod') {
+    throw new AppError(400, 'VALIDATION_ERROR', 'Choose Cashfree or cash on delivery');
+  }
 
   const result = await withTransaction(async (session) => {
     const orderItems = [];
@@ -168,6 +170,56 @@ export const createCheckout = async ({
 
     const grandTotal = toMoney(subtotal + shipping);
     const orderNumber = generateOrderNumber();
+    const address = snapAddress(shipAddr);
+
+    if (isCashfree) {
+      const sessionPayment = await createCashfreeOrder({
+        orderId: orderNumber,
+        amount: grandTotal,
+        customerId: userId ? `u${userId}` : `g${orderNumber}`,
+        customerPhone: phone || shipAddr.phone,
+        customerEmail: email,
+        customerName: shipAddr.fullName,
+        returnUrl: `${env.clientUrl}/checkout?cashfree_order={order_id}`,
+      });
+
+      await CheckoutSession.create(
+        [
+          {
+            orderNumber,
+            userId: userId || null,
+            guestToken: userId ? null : guestToken,
+            email,
+            phone: phone || shipAddr.phone || '',
+            items: orderItems,
+            subtotal,
+            shipping,
+            tax: 0,
+            grandTotal,
+            shippingAddress: address,
+            billingAddress: billAddr,
+            shippingMethodId,
+            cartId: ephemeral ? null : cart._id,
+            cashfreeOrderId: sessionPayment.orderId,
+            paymentSessionId: sessionPayment.paymentSessionId,
+            status: 'awaiting',
+          },
+        ],
+        opts(session),
+      );
+
+      return {
+        orderNumber,
+        payment: {
+          provider: 'cashfree',
+          cashfreeOrderId: sessionPayment.orderId,
+          paymentSessionId: sessionPayment.paymentSessionId,
+          mode: sessionPayment.mode,
+          amount: formatMoney(grandTotal),
+          currency: 'INR',
+        },
+      };
+    }
 
     const [order] = await Order.create(
       [
@@ -177,22 +229,22 @@ export const createCheckout = async ({
           guestToken: userId ? null : guestToken,
           email,
           phone: phone || '',
-          status: isRazorpay ? 'PENDING_PAYMENT' : 'PROCESSING',
+          status: 'PROCESSING',
           paymentStatus: 'PENDING',
           items: orderItems,
           subtotal,
           shipping,
           tax: 0,
           grandTotal,
-          shippingAddress: snapAddress(shipAddr),
+          shippingAddress: address,
           billingAddress: billAddr,
           shippingMethodId,
           paymentMethod: resolved.payment.id,
           cartId: ephemeral ? null : cart._id,
           timeline: [
             {
-              status: isRazorpay ? 'PENDING_PAYMENT' : 'PROCESSING',
-              note: isCod ? 'Cash on delivery' : isRazorpay ? 'Order created' : resolved.payment.label,
+              status: 'PROCESSING',
+              note: 'Cash on delivery',
             },
           ],
         },
@@ -200,61 +252,25 @@ export const createCheckout = async ({
       opts(session),
     );
 
-    if (!isRazorpay) {
-      await reserveOrderStock(order, {
-        session,
-        reason: isCod ? 'cod_reserve' : 'order_reserve',
-      });
-      if (!ephemeral && order.cartId) await clearCart(order.cartId, session);
-      return {
-        orderId: order._id.toString(),
-        orderNumber: order.orderNumber,
-        payment: {
-          provider: isCod ? 'cod' : 'manual',
-          method: resolved.payment.id,
-          label: resolved.payment.label,
-          amount: formatMoney(grandTotal),
-          currency: 'INR',
-        },
-      };
-    }
-
-    const rp = await createRazorpayOrder({
-      amountPaise: toPaise(grandTotal),
-      currency: 'INR',
-      receipt: orderNumber,
-      notes: { orderId: order._id.toString() },
+    await reserveOrderStock(order, {
+      session,
+      reason: 'cod_reserve',
     });
-
-    await Payment.create(
-      [
-        {
-          orderId: order._id,
-          razorpayOrderId: rp.id,
-          amount: grandTotal,
-          currency: 'INR',
-          status: 'created',
-        },
-      ],
-      opts(session),
-    );
-
+    if (!ephemeral && order.cartId) await clearCart(order.cartId, session);
     return {
       orderId: order._id.toString(),
       orderNumber: order.orderNumber,
       payment: {
-        provider: 'razorpay',
-        razorpayOrderId: rp.id,
+        provider: 'cod',
+        method: resolved.payment.id,
+        label: resolved.payment.label,
         amount: formatMoney(grandTotal),
-        amountPaise: toPaise(grandTotal),
         currency: 'INR',
-        keyId: env.razorpayKeyId || null,
-        mock: Boolean(rp.mock),
       },
     };
   });
 
-  if (result.payment?.provider !== 'razorpay') {
+  if (result.payment?.provider !== 'cashfree') {
     const order = await Order.findById(result.orderId);
     sendOrderConfirmation(order).catch((err) => {
       console.error('[checkout] confirmation email failed:', err.message);

@@ -3,7 +3,7 @@ import { AppError } from '../utils/errors.js';
 import { toMoney } from '../utils/money.js';
 
 const DEFAULT_PAYMENTS = [
-  { id: 'razorpay', label: 'Razorpay', detail: 'UPI, cards, netbanking', enabled: true },
+  { id: 'cashfree', label: 'Cashfree', detail: 'UPI, cards, netbanking', enabled: true },
   {
     id: 'cod',
     label: 'Cash on delivery',
@@ -32,6 +32,19 @@ export const loadCommerceSettings = async () => {
   let dirty = false;
   if (!settings.paymentMethods?.length) {
     settings.paymentMethods = DEFAULT_PAYMENTS;
+    dirty = true;
+  }
+  if (settings.paymentMethods.some((method) => method.id === 'razorpay')) {
+    settings.paymentMethods = settings.paymentMethods.filter((method) => method.id !== 'razorpay');
+    dirty = true;
+  }
+  if (!settings.paymentMethods.some((method) => method.id === 'cashfree')) {
+    settings.paymentMethods.unshift({
+      id: 'cashfree',
+      label: 'Cashfree',
+      detail: 'UPI, cards, netbanking',
+      enabled: true,
+    });
     dirty = true;
   }
   if (!settings.shippingMethods?.length) {
@@ -85,7 +98,7 @@ export const createPaymentMethod = async (body) => {
   const label = String(body.label || '').trim();
   if (!label) throw new AppError(400, 'VALIDATION_ERROR', 'Payment label required');
   let id = slugify(body.id || label) || `pay-${Date.now()}`;
-  if (id === 'razorpay') throw new AppError(400, 'VALIDATION_ERROR', 'Razorpay already exists');
+  if (id === 'cashfree') throw new AppError(400, 'VALIDATION_ERROR', 'Cashfree already exists');
   if (settings.paymentMethods.some((method) => method.id === id)) id = `${id}-${Date.now()}`;
   settings.paymentMethods.push({
     id,

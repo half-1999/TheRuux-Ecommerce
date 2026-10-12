@@ -3,41 +3,126 @@ import { Address } from '../models/Address.js';
 import { User } from '../models/User.js';
 import { AppError } from '../utils/errors.js';
 import { formatMoney } from '../utils/money.js';
+import { getCommerceConfig } from './commerce-config.service.js';
+
+const FALLBACK_PAYMENTS = {
+  cashfree: { label: 'Cashfree', detail: 'UPI, cards, netbanking' },
+  cod: { label: 'Cash on delivery', detail: 'Pay with cash when the order arrives' },
+};
+
+const FALLBACK_SHIPPING = {
+  standard: { label: 'Standard', estimate: '3–5 business days' },
+  express: { label: 'Express', estimate: '1–2 business days' },
+};
+
+const commerceMaps = async () => {
+  const config = await getCommerceConfig();
+  return {
+    payments: Object.fromEntries(config.paymentMethods.map((method) => [method.id, method])),
+    shipping: Object.fromEntries(config.shippingMethods.map((method) => [method.id, method])),
+  };
+};
+
+const paymentCopy = (id, payments) => {
+  const method = payments[id] || FALLBACK_PAYMENTS[id];
+  return {
+    paymentMethod: id || '',
+    paymentLabel: method?.label || id || '',
+    paymentDetail: method?.detail || '',
+  };
+};
+
+const shippingCopy = (id, shipping) => {
+  const method = shipping[id];
+  const fallback = FALLBACK_SHIPPING[id];
+  return {
+    shippingMethodId: id || '',
+    shippingLabel: method?.label || method?.name || fallback?.label || id || '',
+    shippingEstimate: method?.estimate || method?.detail || fallback?.estimate || '',
+  };
+};
+
+const presentItem = (item) => ({
+  id: item._id?.toString?.() || '',
+  productId: item.productId ? String(item.productId) : '',
+  productName: item.productName || '',
+  productTitle: item.productTitle || '',
+  productSlug: item.productSlug || '',
+  sku: item.sku || '',
+  size: item.size || '',
+  colourName: item.colourName || '',
+  quantity: item.quantity || 0,
+  unitPrice: formatMoney(item.unitPrice),
+  lineTotal: formatMoney(item.lineTotal),
+  imageUrl: item.imageUrl || '',
+  personalization:
+    item.personalization?.textFront || item.personalization?.textBack
+      ? {
+          textFront: item.personalization.textFront || '',
+          textBack: item.personalization.textBack || '',
+        }
+      : null,
+});
+
+const presentTimeline = (timeline) =>
+  (timeline || []).map((entry) => ({
+    status: entry.status || '',
+    note: entry.note || '',
+    at: entry.at || null,
+  }));
 
 export const listMyOrders = async (userId) => {
-  const orders = await Order.find({ userId }).sort({ placedAt: -1 }).lean();
+  const [orders, maps] = await Promise.all([
+    Order.find({ userId }).sort({ placedAt: -1 }).lean(),
+    commerceMaps(),
+  ]);
   return {
-    items: orders.map((o) => ({
-      id: o._id.toString(),
-      orderNumber: o.orderNumber,
-      status: o.status,
-      paymentStatus: o.paymentStatus,
-      paymentMethod: o.paymentMethod || '',
-      shippingMethodId: o.shippingMethodId || '',
-      grandTotal: formatMoney(o.grandTotal),
-      currency: o.currency,
-      placedAt: o.placedAt,
-      itemCount: o.items.reduce((n, i) => n + i.quantity, 0),
+    items: orders.map((order) => ({
+      id: order._id.toString(),
+      orderNumber: order.orderNumber,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      statusReason: order.statusReason || '',
+      ...paymentCopy(order.paymentMethod, maps.payments),
+      ...shippingCopy(order.shippingMethodId, maps.shipping),
+      email: order.email,
+      phone: order.phone || '',
+      subtotal: formatMoney(order.subtotal),
+      shipping: formatMoney(order.shipping),
+      tax: formatMoney(order.tax),
+      grandTotal: formatMoney(order.grandTotal),
+      currency: order.currency,
+      placedAt: order.placedAt,
+      paidAt: order.paidAt,
+      trackingNumber: order.trackingNumber || '',
+      carrier: order.carrier || '',
+      itemCount: (order.items || []).reduce((count, item) => count + (item.quantity || 0), 0),
+      items: (order.items || []).map(presentItem),
     })),
   };
 };
 
 export const getMyOrder = async (userId, orderNumber) => {
-  const order = await Order.findOne({ orderNumber, userId }).lean();
+  const [order, maps] = await Promise.all([
+    Order.findOne({ orderNumber, userId }).lean(),
+    commerceMaps(),
+  ]);
   if (!order) throw new AppError(404, 'NOT_FOUND', 'Order not found');
   return {
     ...order,
     id: order._id.toString(),
+    statusReason: order.statusReason || '',
+    ...paymentCopy(order.paymentMethod, maps.payments),
+    ...shippingCopy(order.shippingMethodId, maps.shipping),
+    trackingNumber: order.trackingNumber || '',
+    carrier: order.carrier || '',
     subtotal: formatMoney(order.subtotal),
     shipping: formatMoney(order.shipping),
     tax: formatMoney(order.tax),
     grandTotal: formatMoney(order.grandTotal),
-    items: order.items.map((i) => ({
-      ...i,
-      id: i._id.toString(),
-      unitPrice: formatMoney(i.unitPrice),
-      lineTotal: formatMoney(i.lineTotal),
-    })),
+    itemCount: (order.items || []).reduce((count, item) => count + (item.quantity || 0), 0),
+    items: (order.items || []).map(presentItem),
+    timeline: presentTimeline(order.timeline),
   };
 };
 

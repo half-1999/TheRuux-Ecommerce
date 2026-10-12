@@ -32,7 +32,7 @@ PUBLIC_API_URL=https://<your-service>.onrender.com
 COOKIE_SECURE=true
 ```
 
-Add optional keys (Razorpay, Cloudinary, Resend, Sentry) when ready.
+Add Cashfree, Cloudinary, Resend, and Sentry keys when ready. Checkout needs `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, and `CASHFREE_ENV`.
 
 4. After first deploy, **seed products** (Shell / one-off):
 
@@ -63,7 +63,6 @@ Your screenshot used **Root Directory `./`** and Framework **Other**. For this r
 | Key | Value | Environments |
 | --- | --- | --- |
 | `VITE_API_URL` | `https://<your-render-service>.onrender.com/api` | Production + Preview |
-| `VITE_RAZORPAY_KEY_ID` | (optional) | Production |
 | `VITE_INSTAGRAM_URL` | `https://instagram.com/theruux` | Production |
 
 `VITE_*` vars are baked in at **build time** — set them before the first production build, or Redeploy after changing.

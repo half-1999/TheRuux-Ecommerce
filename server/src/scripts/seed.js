@@ -117,7 +117,7 @@ Can I customize a tee?
 IDENTITY supports front text (required) and optional back text at checkout via Buy Now or Add to Bag.
 
 How do payments work?
-Checkout uses Razorpay. Your bag stays intact if you use Buy Now for a single piece.
+Checkout uses Cashfree. Your bag stays intact if you use Buy Now for a single piece.
 
 How do I track an order?
 Sign in → Account → Orders. You will also get email updates when status changes.`,
@@ -138,7 +138,7 @@ Instagram DMs are welcome for quick vibes — order issues are faster through th
 
 We collect account details, order information, and optional location suggestions you approve at checkout to fulfill purchases and improve the store.
 
-We do not sell personal data. Payment details are processed by Razorpay — we do not store full card numbers.
+We do not sell personal data. Payment details are processed by Cashfree — we do not store full card numbers.
 
 Cookies and local storage keep your session, bag, and preferences working. You can clear them in your browser anytime.
 

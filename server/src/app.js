@@ -96,7 +96,7 @@ export const createApp = () => {
   );
   app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
 
-  // Razorpay webhook — raw body for signature verification
+  // Cashfree webhook — raw body for signature verification
   app.post(
     '/api/payments/webhook',
     express.raw({ type: 'application/json' }),

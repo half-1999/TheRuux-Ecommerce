@@ -132,6 +132,9 @@ try {
     headers: { 'X-Guest-Token': 'verify-guest' },
     body: {
       email: 'buyer@test.com',
+      phone: '9999999999',
+      shippingMethodId: 'standard',
+      paymentMethod: 'cashfree',
       shippingAddress: {
         fullName: 'Buyer',
         phone: '9999999999',
@@ -144,19 +147,19 @@ try {
     },
   });
   assert(checkout.status === 201, `checkout ${JSON.stringify(checkout.data)}`);
+  assert(checkout.data.payment?.paymentSessionId, 'missing Cashfree session');
 
+  assert(!checkout.data.orderId, 'order created before payment is checked');
   const confirm = await req('/payments/confirm', {
     method: 'POST',
-    body: {
-      razorpayOrderId: checkout.data.payment.razorpayOrderId,
-      razorpayPaymentId: 'pay_mock_1',
-      razorpaySignature: 'dev',
-    },
+    body: { cashfreeOrderId: checkout.data.payment.cashfreeOrderId },
   });
-  assert(confirm.data.paymentStatus === 'PAID', `confirm ${JSON.stringify(confirm.data)}`);
+  assert(confirm.status === 200, `unpaid confirm ${JSON.stringify(confirm.data)}`);
+  assert(confirm.data.paymentStatus === 'PENDING', `expected pending ${JSON.stringify(confirm.data)}`);
+  assert(confirm.data.status === 'PENDING_PAYMENT', `expected pending order ${JSON.stringify(confirm.data)}`);
 
   const v = await Variant.findById(variant._id);
-  assert(v.stockQty === 3, `stock expected 3 got ${v.stockQty}`);
+  assert(v.stockQty === 5, `stock expected 5 got ${v.stockQty}`);
 
   console.log('Phase 2 in-memory verification passed.');
 } finally {

@@ -10,7 +10,7 @@ const start = async () => {
   app.listen(env.port, () => {
     console.log(`TheRuux API listening on http://localhost:${env.port}`);
     console.log(
-      `Integrations: razorpay=${env.razorpayEnabled} cloudinary=${env.cloudinaryEnabled} email=${env.emailEnabled} sentry=${Boolean(env.sentryDsn)}`,
+      `Integrations: cashfree=${env.cashfreeEnabled} (${env.cashfreeEnv}) cloudinary=${env.cloudinaryEnabled} email=${env.emailEnabled} sentry=${Boolean(env.sentryDsn)}`,
     );
   });
 };

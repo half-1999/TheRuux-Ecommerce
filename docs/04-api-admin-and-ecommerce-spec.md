@@ -315,7 +315,7 @@ Guest header/cookie: `X-Guest-Token` / `theruux_guest`
 1. Revalidate cart stock/prices  
 2. Create `Order` `PENDING_PAYMENT` + `OrderItem` snapshots in transaction  
 3. Create Payment provider order  
-4. Return `{ orderId, orderNumber, payment: { provider, razorpayOrderId, amount, currency, keyId } }`  
+4. Return `{ orderId, orderNumber, payment: { provider: "cashfree", cashfreeOrderId, paymentSessionId, mode, amount, currency } }`  
 
 **Errors:** `CART_EMPTY`, `OUT_OF_STOCK`, `PRICE_CHANGED`, `VALIDATION_ERROR`
 
@@ -327,7 +327,7 @@ Guest header/cookie: `X-Guest-Token` / `theruux_guest`
 
 ### `POST /api/payments/webhook`
 
-**Auth:** Provider signature (Razorpay)  
+**Auth:** Cashfree webhook signature (`x-webhook-signature`, `x-webhook-timestamp`)  
 **Purpose:** Verify payment; mark order `PAID`; decrement inventory; clear cart; enqueue confirmation email  
 **Idempotent:** Safe retries  
 **Errors:** `INVALID_SIGNATURE` ? 400  
@@ -348,7 +348,7 @@ Guest header/cookie: `X-Guest-Token` / `theruux_guest`
 
 **Auth:** Admin  
 **Body:** `{ amount?, reason }`  
-**Calls Razorpay refund; updates paymentStatus; does not auto-restock unless `restock: true`
+**Updates paymentStatus; does not auto-restock unless `restock: true`. Cashfree refunds are issued from the Cashfree dashboard in v1.
 
 ---
 
@@ -545,7 +545,7 @@ Same pattern as categories + story/tagline/hero media.
 | GET | `/api/admin/settings` | Non-secret store settings |
 | PATCH | `/api/admin/settings` | Shipping rules, low-stock threshold, tax mode, store phone, IG profile URL |
 
-Secrets (Razorpay, SMTP) **never** returned by API  env only.
+Secrets (Cashfree, SMTP) **never** returned by API — env only.
 
 ### Analytics
 
@@ -663,7 +663,7 @@ Empty state copy: **NOTHING HERE YET. / We can fix that.**
 4. Discount = 0 in v1  
 5. Tax per settings  
 6. Order summary (server)  
-7. Payment via Razorpay widget  
+7. Payment via Cashfree checkout  
 
 ### 19.3 Payments
 

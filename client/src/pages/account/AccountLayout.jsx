@@ -50,7 +50,7 @@ export function AccountLayout() {
   }
 
   return (
-    <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] pt-50 h-screen">
+    <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] pb-24 pt-50">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-3xl font-semibold">Hello, {user.name}</h1>

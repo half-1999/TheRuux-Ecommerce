@@ -2,6 +2,38 @@ import { useAuthStore } from '../store/authStore';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 const GUEST_KEY = 'theruux_guest';
+const SKIP_REFRESH = new Set(['/auth/refresh', '/auth/login', '/auth/register']);
+
+let refreshInFlight = null;
+
+const accessTokenExpired = (token) => {
+  const part = String(token || '').split('.')[1];
+  if (!part) return false;
+  try {
+    const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(window.atob(padded));
+    return typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now() + 15000;
+  } catch {
+    return false;
+  }
+};
+
+const refreshAccessToken = () => {
+  if (!refreshInFlight) {
+    refreshInFlight = useAuthStore
+      .getState()
+      .refresh()
+      .catch((err) => {
+        useAuthStore.getState().clearSession();
+        throw err;
+      })
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+};
 
 export const getGuestToken = () => {
   let token = localStorage.getItem(GUEST_KEY);
@@ -12,8 +44,17 @@ export const getGuestToken = () => {
   return token;
 };
 
-async function request(path, { method = 'GET', body, token, headers, guest = false } = {}) {
-  const accessToken = token ?? useAuthStore.getState().accessToken;
+async function request(path, { method = 'GET', body, token, headers, guest = false, retry = true } = {}) {
+  let accessToken = token ?? useAuthStore.getState().accessToken;
+  if (retry && !SKIP_REFRESH.has(path) && accessToken && accessTokenExpired(accessToken)) {
+    try {
+      const refreshed = await refreshAccessToken();
+      accessToken = refreshed.accessToken;
+    } catch {
+      accessToken = null;
+    }
+  }
+
   const res = await fetch(`${API_URL}${path}`, {
     method,
     credentials: 'include',
@@ -28,6 +69,22 @@ async function request(path, { method = 'GET', body, token, headers, guest = fal
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    const canRefresh = retry && res.status === 401 && !SKIP_REFRESH.has(path) && useAuthStore.getState().user;
+    if (canRefresh) {
+      try {
+        const refreshed = await refreshAccessToken();
+        return request(path, {
+          method,
+          body,
+          token: refreshed.accessToken,
+          headers,
+          guest,
+          retry: false,
+        });
+      } catch {
+        /* session cleared; surface the original 401 */
+      }
+    }
     const err = new Error(data?.error?.message || 'Request failed');
     err.code = data?.error?.code;
     err.status = res.status;
@@ -85,6 +142,7 @@ export const checkoutApi = {
   preview: (payload) => api.post('/checkout/preview', payload, { guest: true }),
   create: (payload) => api.post('/checkout/create', payload, { guest: true }),
   confirmPayment: (payload) => api.post('/payments/confirm', payload),
+  abandonPayment: (payload) => api.post('/payments/abandon', payload),
   paymentStatus: (orderId) => api.get(`/payments/${orderId}/status`),
 };
 

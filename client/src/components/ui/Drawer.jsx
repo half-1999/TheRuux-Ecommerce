@@ -23,9 +23,8 @@ export function Drawer({ open, onClose, side = 'left', title, children, classNam
     <AnimatePresence>
       {open ? (
         <>
-          <motion.button
-            type="button"
-            aria-label="Close overlay"
+          <motion.div
+            aria-hidden="true"
             className="fixed inset-0 z-[var(--z-drawer)] bg-black/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -38,7 +37,7 @@ export function Drawer({ open, onClose, side = 'left', title, children, classNam
             aria-modal="true"
             aria-label={title || 'Drawer'}
             className={clsx(
-              'fixed top-0 z-[var(--z-drawer)] flex h-full w-[min(100%,22rem)] flex-col bg-[var(--color-bg-elevated)] shadow-[var(--shadow-soft)]',
+              'fixed top-0 z-[calc(var(--z-drawer)+1)] flex h-full w-[min(100%,22rem)] flex-col bg-[var(--color-bg-elevated)] shadow-[var(--shadow-soft)]',
               fromLeft ? 'left-0' : 'right-0',
               className,
             )}

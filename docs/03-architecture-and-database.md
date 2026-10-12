@@ -27,7 +27,7 @@
 | **Forms** | React Hook Form | Checkout / admin forms |
 | **Search** | MongoDB text indexes v1 | Small catalog at launch |
 | **File / image** | **Cloudinary** (preferred) or Multer ? local/S3 | Campaign media optimization |
-| **Payments** | **Razorpay** (**assumption**) | INR / India |
+| **Payments** | **Cashfree** (sandbox, then production) | INR / India |
 | **Email** | **Nodemailer** or **Resend** | Order notifications |
 | **Testing** | **Jest/Vitest** (API) · **React Testing Library** · **Playwright** (E2E) | Critical commerce paths |
 | **SEO (SPA)** | `react-helmet-async` + prerender (**assumption:** vite-plugin-ssr or react-snap / Prerender.io for key routes) | PDF requires SEO; pure CSR needs prerender for product URLs |
@@ -62,7 +62,7 @@ Next.js, PostgreSQL, Prisma, Auth.js - replaced by this MERN stack per stakehold
                  ?  (Atlas)    ?
                  ???????????????
 
-External: Razorpay · Cloudinary · Email · Instagram (outbound links only)
+External: Cashfree · Cloudinary · Email · Instagram (outbound links only)
 ```
 
 ### Checkout flow
@@ -71,9 +71,9 @@ External: Razorpay · Cloudinary · Email · Instagram (outbound links only)
 React ? POST /api/checkout/create
      ? Cart + stock validate (Mongo transaction / optimistic stock)
      ? Order PENDING_PAYMENT
-     ? Razorpay order create
-     ? Client Razorpay checkout
-     ? POST /api/payments/webhook (signature verify)
+     ? Cashfree order create (payment session)
+     ? Client Cashfree checkout (sandbox or production)
+     ? POST /api/payments/webhook (signature verify) and POST /api/payments/confirm (server re-fetch)
      ? Mark PAID · decrement stock · clear cart · send email
 ```
 
@@ -150,7 +150,7 @@ Use collections equivalent to Doc 01 entities. Prefer **embedded** subdocs where
 | `carts` | userId \|\| guestToken; items[{ variantId, qty, personalization }] |
 | `wishlists` | userId; productIds[] |
 | `orders` | snapshots of items/addresses; status; paymentStatus; totals |
-| `payments` | orderId, razorpay ids, status, raw webhook meta |
+| `payments` | orderId, Cashfree order id, payment session, status, raw webhook meta |
 | `inventoryadjustments` | variantId, delta, reason, adminId |
 | `newslettersubscribers` | email unique |
 | `instagramlinks` | scope HOMEPAGE \| PRODUCT; productId?; url; thumb; sortOrder |
@@ -220,7 +220,7 @@ Same as previous relational design: User?Orders, Product?Variants/Images, Cart?I
 | CORS | Whitelist client origin(s) |
 | Helmet | HTTP headers |
 | Uploads | MIME/size checks; Cloudinary signed uploads preferred |
-| Payments | Razorpay webhook signature verification |
+| Payments | Cashfree webhook signature verification |
 | Secrets | `.env` only; never commit |
 | Admin | Separate login; audit log writes |
 | XSS | React escaping; sanitize rich text if any CMS HTML |
@@ -250,9 +250,9 @@ MONGODB_URI=
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
 CLIENT_URL=
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-RAZORPAY_WEBHOOK_SECRET=
+CASHFREE_APP_ID=
+CASHFREE_SECRET_KEY=
+CASHFREE_ENV=sandbox
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
@@ -261,7 +261,6 @@ RESEND_API_KEY=   # or SMTP_*
 
 # client
 VITE_API_URL=
-VITE_RAZORPAY_KEY_ID=
 VITE_INSTAGRAM_URL=
 ```
 
@@ -273,7 +272,7 @@ VITE_INSTAGRAM_URL=
 2. Deploy Express API  
 3. Deploy Vite build for React  
 4. Configure CORS + webhook URL  
-5. Staging + production Razorpay keys  
+5. Staging + production Cashfree keys  
 
 ---
 
@@ -294,7 +293,7 @@ VITE_INSTAGRAM_URL=
 | Editorial homepage | React home sections + `homepagesections` API |
 | Variants / inventory | `variants` collection + transactions |
 | Wishlist / account / cart / checkout | Express routes + React pages |
-| Payment gateway | Razorpay + webhook on Express |
+| Payment gateway | Cashfree + webhook on Express |
 | Instagram URL fields | `instagramlinks` + admin forms |
 | SEO | Helmet + prerender for PDP/PLP |
 | Easy admin | React `/admin` + admin APIs |

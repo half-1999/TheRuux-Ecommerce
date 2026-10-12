@@ -82,7 +82,7 @@ function SettingsForm({ initial }) {
           />
         </div>
         <p className="admin-muted">
-          Razorpay / Cloudinary / email secrets are env-only and never returned by this API.
+          Cashfree / Cloudinary / email secrets are env-only and never returned by this API.
         </p>
       </div>
     </>

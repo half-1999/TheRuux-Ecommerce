@@ -53,6 +53,9 @@ export function AdminOrderDetailPage() {
             <br />
             Placed: {data.placedAt ? new Date(data.placedAt).toLocaleString() : '—'}
           </p>
+          {data.statusReason ? (
+            <p style={{ marginTop: '0.75rem' }}>{data.statusReason}</p>
+          ) : null}
           <p style={{ marginTop: '0.75rem' }}>
             Total ₹{Number(data.grandTotal).toFixed(2)} · Subtotal ₹{Number(data.subtotal).toFixed(2)}
           </p>

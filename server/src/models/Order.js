@@ -62,6 +62,7 @@ const orderSchema = new mongoose.Schema(
         'SHIPPED',
         'DELIVERED',
         'COMPLETED',
+        'FAILED',
         'CANCELLED',
         'REFUNDED',
       ],
@@ -84,6 +85,7 @@ const orderSchema = new mongoose.Schema(
     billingAddress: addressSnapshotSchema,
     shippingMethodId: { type: String, default: 'standard' },
     paymentMethod: { type: String, default: '' },
+    statusReason: { type: String, default: '' },
     trackingNumber: { type: String, default: '' },
     carrier: { type: String, default: '' },
     cartId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart', default: null },
@@ -97,7 +99,8 @@ const orderSchema = new mongoose.Schema(
 export const Order = mongoose.model('Order', orderSchema);
 
 export const ORDER_TRANSITIONS = {
-  PENDING_PAYMENT: ['PROCESSING', 'CANCELLED'],
+  PENDING_PAYMENT: ['PROCESSING', 'FAILED', 'CANCELLED'],
+  FAILED: ['CANCELLED'],
   PAID: ['PROCESSING', 'CANCELLED', 'REFUNDED'],
   PROCESSING: ['SHIPPED', 'CANCELLED', 'REFUNDED'],
   SHIPPED: ['DELIVERED', 'CANCELLED'],

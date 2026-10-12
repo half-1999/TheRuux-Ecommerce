@@ -468,7 +468,7 @@ Admin login
 ### Payments
 
 - Payment gateway required.
-- Gateway **not named** ? **assumption:** Razorpay (INR / India-friendly) with webhook verification.
+- Gateway: **Cashfree** (INR) with webhook verification. Sandbox first.
 - Never mark paid from client alone.
 
 ### Orders
@@ -518,7 +518,7 @@ Admin login
 |---|---|---|
 | A1 | Primary market India; currency INR | Mockup prices use ?; brand Indian-inspired |
 | A2 | Stack: **full MERN**  MongoDB + Express + React (Vite) + Node.js (see Doc 03) | Stakeholder decision (PDF silent on stack) |
-| A3 | Payments via Razorpay + webhooks | Gateway required; India fit |
+| A3 | Payments via Cashfree + webhooks | Gateway required; India fit |
 | A4 | Auth: email/password + JWT (access) + httpOnly refresh cookie | Account required; method unspecified; classic MERN |
 | A5 | Single Admin role at launch | Easy admin only |
 | A6 | Guest cart + wishlist with login merge | Standard; wishlist persistence for guests unspecified |
@@ -543,7 +543,7 @@ Admin login
 
 1. **Collection spelling:** PDF uses both **Udbhav** and **Uddhav**. Which is canonical for URLs, UI, and SEO?
 2. **Product naming conflicts:** Page 6 lists ARAMBH / DHAAV / ASEEM; pages 1011 list AARAMBH / RAFTAAR / LIMITLESS / REBIRTH / REBEL / IDENTITY for overlapping concepts. Which names are final for the first three articles?
-3. **Payment provider:** Confirm Razorpay (or Stripe/other)?  
+3. **Payment provider:** Cashfree sandbox, then production.  
 3b. **MERN confirmed**  MongoDB/Express/React/Node is the build stack (docs updated).
 4. **Tax:** GST-inclusive pricing? Invoice requirements?
 5. **Shipping:** Carrier, zones, rates, COD?

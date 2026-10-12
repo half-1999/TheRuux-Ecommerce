@@ -72,13 +72,15 @@ async function main() {
   assert(metrics.status === 200, 'admin metrics failed');
   assert(typeof metrics.data.ordersToday === 'number', 'metrics shape');
 
-  console.log('Smoke: checkout create (mock razorpay)');
+  console.log('Smoke: checkout create (Cashfree sandbox session)');
   const checkout = await req('/checkout/create', {
     method: 'POST',
     headers: { 'X-Guest-Token': 'smoke-guest-token-1' },
     body: {
       email: 'checkout@test.com',
       phone: '9999999999',
+      shippingMethodId: 'standard',
+      paymentMethod: 'cashfree',
       shippingAddress: {
         fullName: 'Smoke Tester',
         phone: '9999999999',
@@ -91,23 +93,23 @@ async function main() {
     },
   });
   assert(checkout.status === 201, `checkout failed: ${JSON.stringify(checkout.data)}`);
-  assert(checkout.data.payment?.razorpayOrderId, 'missing razorpay order');
+  assert(checkout.data.payment?.provider === 'cashfree', 'expected Cashfree checkout');
+  assert(checkout.data.payment?.paymentSessionId, 'missing Cashfree payment session');
 
-  console.log('Smoke: payment confirm (mock)');
+  console.log('Smoke: unpaid confirm is saved as pending and does not change stock');
+  assert(!checkout.data.orderId, 'Cashfree checkout must not create an order before payment is checked');
   const confirm = await req('/payments/confirm', {
     method: 'POST',
-    body: {
-      razorpayOrderId: checkout.data.payment.razorpayOrderId,
-      razorpayPaymentId: `pay_mock_${Date.now()}`,
-      razorpaySignature: 'dev',
-    },
+    body: { cashfreeOrderId: checkout.data.payment.cashfreeOrderId },
   });
-  assert(confirm.status === 200 && confirm.data.paymentStatus === 'PAID', `confirm failed: ${JSON.stringify(confirm.data)}`);
+  assert(confirm.status === 200, `unpaid confirm should be recorded: ${JSON.stringify(confirm.data)}`);
+  assert(confirm.data.paymentStatus === 'PENDING', `expected pending payment ${JSON.stringify(confirm.data)}`);
+  assert(confirm.data.status === 'PENDING_PAYMENT', `expected pending order ${JSON.stringify(confirm.data)}`);
+  assert(confirm.data.reason, 'pending order needs a reason');
 
-  // stock should have decremented
   const after = await req(`/products/${product.slug}`);
   const vAfter = after.data.variants.find((v) => v.id === variant.id);
-  assert(vAfter.stockQty === variant.stockQty - 1, 'stock not decremented after payment');
+  assert(vAfter.stockQty === variant.stockQty, 'stock changed before payment');
 
   console.log('All Phase 2 smoke checks passed.');
 }

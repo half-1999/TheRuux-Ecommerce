@@ -484,7 +484,8 @@ export const adminListOrders = async (query = {}) => {
       phone: o.phone || '',
       status: o.status,
       paymentStatus: o.paymentStatus,
-      paymentMethod: o.paymentMethod || (o.paymentStatus === 'PAID' ? 'razorpay' : ''),
+      statusReason: o.statusReason || '',
+      paymentMethod: o.paymentMethod || (o.paymentStatus === 'PAID' ? 'cashfree' : ''),
       shippingMethodId: o.shippingMethodId || '',
       grandTotal: formatMoney(o.grandTotal),
       subtotal: formatMoney(o.subtotal),
@@ -542,7 +543,10 @@ export const adminTransitionOrder = async (id, toStatus, adminId, meta = {}) => 
 
     current.status = toStatus;
     if (toStatus === 'PAID' || toStatus === 'COMPLETED') {
-      if (current.paymentStatus === 'PENDING' && current.paymentMethod === 'razorpay') {
+      if (
+        current.paymentStatus === 'PENDING' &&
+        (current.paymentMethod === 'cashfree' || current.paymentMethod === 'razorpay')
+      ) {
         current.paymentStatus = 'PAID';
         current.paidAt = current.paidAt || new Date();
       }

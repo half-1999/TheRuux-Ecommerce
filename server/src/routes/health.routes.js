@@ -14,7 +14,7 @@ router.get('/', (_req, res) => {
     db,
     mongoReadyState: mongoose.connection.readyState,
     integrations: {
-      razorpay: env.razorpayEnabled,
+      cashfree: env.cashfreeEnabled,
       cloudinary: env.cloudinaryEnabled,
       email: env.emailEnabled,
       sentry: Boolean(env.sentryDsn),

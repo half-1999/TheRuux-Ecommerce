@@ -61,7 +61,7 @@ Docs + MERN stack decision + master prompt.
 2. Validators (Zod/Joi)  
 3. Services + routes: products, categories, collections, search, homepage, pages  
 4. Cart (+ guest token), wishlist, checkout create  
-5. Razorpay sandbox + webhook verify + inventory decrement transaction  
+5. Cashfree sandbox + webhook verify + inventory decrement transaction  
 6. Newsletter, contact  
 7. Admin routes: products, variants, images, categories, collections, inventory, orders, customers, homepage, Instagram URLs, metrics  
 8. Multer/Cloudinary upload  
@@ -116,7 +116,7 @@ Docs + MERN stack decision + master prompt.
 
 ## Phase 5 - Integrations ✅
 
-1. Razorpay staging webhooks on public URL — see `docs/06-phase5-integrations.md`  
+1. Cashfree sandbox webhooks on a public URL — see `docs/06-phase5-integrations.md`  
 2. Email templates (PDF microcopy) — Resend/SMTP + console fallback  
 3. Cloudinary production — packshot transforms + signed upload  
 4. Optional Sentry — server `SENTRY_DSN` / client `VITE_SENTRY_DSN`  

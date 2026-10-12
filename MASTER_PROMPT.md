@@ -29,7 +29,7 @@ Build **TheRuux** — a production-quality editorial streetwear e-commerce platf
 | Styling | **Tailwind CSS** + CSS design tokens |
 | Motion | **Framer Motion** + selective **GSAP / ScrollTrigger** |
 | Auth | JWT access + httpOnly refresh cookie; roles `customer` \| `admin` |
-| Payments | Razorpay (sandbox first) + **webhook verification** |
+| Payments | Cashfree (sandbox first) + **webhook verification** |
 | Media | Cloudinary (or Multer to S3); optimize campaign images/video |
 | Email | Resend or Nodemailer |
 | State | TanStack Query + Zustand (cart UI only) |
@@ -209,7 +209,7 @@ Reviews · Coupons · Men/Women nav · Fake analytics
 2. **Backend** — models, APIs, seed, webhook
 3. **Storefront** — all customer pages + motion + assets
 4. **Admin** — dense ops UI
-5. **Integrations** — Razorpay, email, Cloudinary
+5. **Integrations** — Cashfree, email, Cloudinary
 6. **Polish** — Taste pass, emoji pass, a11y, perf
 7. **Testing** — API + Playwright critical paths
 8. **Final QA** — Doc 05 checklist
@@ -229,7 +229,7 @@ After each phase: run lint, fix breaks, verify, then continue.
 
 ## SUCCESS LOOKS LIKE
 
-A distinctive TheRuux site that feels like OWR x No Idols x Sotbella energy: quiet chrome, loud clothes, real Mongo-backed commerce, Razorpay-ready checkout, admin that can edit products/stock/homepage/Instagram without code — with premium motion, real `/assets` imagery, and a few sharp emoji moments that feel intentional, not childish.
+A distinctive TheRuux site that feels like OWR x No Idols x Sotbella energy: quiet chrome, loud clothes, real Mongo-backed commerce, Cashfree checkout, admin that can edit products/stock/homepage/Instagram without code — with premium motion, real `/assets` imagery, and a few sharp emoji moments that feel intentional, not childish.
 
 **Tagline:** Beyond Boundaries.
 **Principle:** Minimal on the surface. Personality in the details.

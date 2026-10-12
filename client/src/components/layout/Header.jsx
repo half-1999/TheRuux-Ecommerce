@@ -180,7 +180,7 @@ export function Header() {
           'fixed inset-x-0 top-0 z-[var(--z-header)]',
           'transition-[background-color,color,backdrop-filter,border-color]',
           'duration-[var(--dur-mid)] ease-[var(--ease-editorial)]',
-          'h-[var(--header-height)]',
+          'h-25',
           scrolled || !isHome
             ? 'border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-bg)_92%,transparent)] text-[var(--color-text)] backdrop-blur-md'
             : 'border-b border-transparent bg-transparent text-[var(--color-text-inverse)]',
@@ -224,8 +224,8 @@ export function Header() {
               src="/brand/logo.png"
               alt="TheRuux"
               className={[
-                'h-[calc(var(--header-height)-8.15rem)]',
-                'w-auto max-w-[48vw] object-contain',
+                'h-10',
+                'w-auto  object-contain',
                 'transition-[filter] duration-[var(--dur-mid)]',
                 inverted ? 'brightness-0 invert' : '',
               ].join(' ')}

@@ -1,6 +1,6 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ordersApi } from '../api/client';
+import { checkoutApi, ordersApi } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import { formatInr } from '../lib/media';
 import { orderStatusLabel } from '../lib/orderStatus';
@@ -39,8 +39,21 @@ function formatWhen(value) {
 
 export function OrderConfirmationPage() {
   const { orderNumber } = useParams();
+  const [searchParams] = useSearchParams();
+  const cashfreeOrderId = searchParams.get('order_id');
   const user = useAuthStore((s) => s.user);
   const snapshot = readSnapshot(orderNumber);
+  const {
+    data: confirmed,
+    isError: confirmFailed,
+    error: confirmError,
+    isFetching: confirmFetching,
+  } = useQuery({
+    queryKey: ['cashfree-confirm', cashfreeOrderId],
+    queryFn: () => checkoutApi.confirmPayment({ cashfreeOrderId }),
+    enabled: Boolean(cashfreeOrderId),
+    retry: false,
+  });
   const { data, isLoading } = useQuery({
     queryKey: ['order', orderNumber],
     queryFn: () => ordersApi.get(orderNumber),
@@ -50,9 +63,29 @@ export function OrderConfirmationPage() {
 
   const order = data
     ? { ...snapshot, ...data, paymentMethod: data.paymentMethod || snapshot?.paymentMethod }
-    : snapshot;
+    : confirmed?.paymentStatus
+      ? { ...snapshot, status: confirmed.status, paymentStatus: confirmed.paymentStatus }
+      : snapshot;
   const cash = isCashOnDelivery(order);
   const address = order?.shippingAddress;
+
+  if (cashfreeOrderId && (confirmFetching || (!confirmed && !confirmFailed))) {
+    return <div className="px-[var(--space-header-x)] py-28">Checking payment…</div>;
+  }
+
+  if (cashfreeOrderId && (confirmFailed || confirmed?.paymentStatus !== 'PAID')) {
+    return (
+      <div className="mx-auto max-w-lg px-[var(--space-header-x)] pt-50 pb-24">
+        <h1 className="text-3xl font-semibold">Payment not completed</h1>
+        <p className="mt-3 text-[var(--color-text-muted)]">
+          {confirmError?.message || 'Payment was not completed. Your bag is unchanged — you can try again.'}
+        </p>
+        <Link to="/checkout" className="btn-hover mt-6 inline-block border border-[#141414] px-5 py-2 text-sm">
+          Back to checkout
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-[var(--space-header-x)] pb-24 pt-50">
@@ -126,7 +159,7 @@ export function OrderConfirmationPage() {
                 <p className="mt-2 text-sm">
                   {cash
                     ? order.paymentLabel || 'Cash on delivery — pay with cash when the order arrives'
-                    : order.paymentLabel || 'Razorpay'}
+                    : order.paymentLabel || 'Cashfree'}
                 </p>
               </div>
             </div>
