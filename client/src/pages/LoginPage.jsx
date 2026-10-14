@@ -20,9 +20,9 @@ export function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await login({ email, password });
+      const data = await login({ email, password });
       push({ title: 'Welcome back.' });
-      navigate(next || '/account', { replace: true });
+      navigate(next || (data.user?.role === 'admin' ? '/admin' : '/account'), { replace: true });
     } catch (err) {
       setError(err.message || 'Could not sign in');
     } finally {

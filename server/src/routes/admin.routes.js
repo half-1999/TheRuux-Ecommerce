@@ -17,11 +17,99 @@ import {
 } from '../services/commerce-config.service.js';
 import { Category } from '../models/Category.js';
 import { Collection } from '../models/Collection.js';
-import { HomepageSection } from '../models/HomepageSection.js';
 import { Page } from '../models/Page.js';
+import { AppError } from '../utils/errors.js';
 
 const router = Router();
 router.use(requireAuth, requireAdmin);
+
+// Internal paths ("/shop", not "//evil.com") or absolute http(s) URLs only.
+const link = z
+  .string()
+  .trim()
+  .max(1000)
+  .refine((v) => v === '' || /^\/(?!\/)/.test(v) || /^https?:\/\//i.test(v), {
+    message: 'Use a site path like /shop or a full https:// link',
+  });
+
+const seo = z.object({ title: z.string().max(160).optional(), description: z.string().max(320).optional() }).optional();
+
+const categorySchema = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+  slug: z.string().trim().max(80).optional(),
+  description: z.string().max(600).optional(),
+  imageUrl: link.optional(),
+  sortOrder: z.coerce.number().int().min(0).max(9999).optional(),
+  isActive: z.boolean().optional(),
+  seo,
+});
+
+const collectionSchema = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+  slug: z.string().trim().max(80).optional(),
+  tagline: z.string().max(200).optional(),
+  story: z.string().max(4000).optional(),
+  conceptLine: z.string().max(120).optional(),
+  heroMediaUrl: link.optional(),
+  heroMediaType: z.enum(['image', 'video']).optional(),
+  sortOrder: z.coerce.number().int().min(0).max(9999).optional(),
+  isActive: z.boolean().optional(),
+  seo,
+});
+
+const sectionSchema = z
+  .object({
+    title: z.string().max(160).optional(),
+    subtitle: z.string().max(300).optional(),
+    body: z.string().max(2000).optional(),
+    ctaLabel: z.string().max(40).optional(),
+    ctaHref: link.optional(),
+    mediaUrl: link.optional(),
+    mediaType: z.enum(['image', 'video', 'none']).optional(),
+    sortOrder: z.coerce.number().int().min(0).max(100).optional(),
+    isActive: z.boolean().optional(),
+    config: z
+      .object({
+        eyebrow: z.string().max(80).optional(),
+        secondaryCtaLabel: z.string().max(40).optional(),
+        secondaryCtaHref: link.optional(),
+        images: z
+          .array(z.object({ url: link, alt: z.string().max(160).default(''), href: link.default('') }))
+          .max(8)
+          .optional(),
+      })
+      .strict()
+      .optional(),
+    expectedUpdatedAt: z.string().optional(),
+  })
+  .strict();
+
+const navSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        id: z.string().trim().min(1).max(40),
+        label: z.string().trim().min(1).max(40),
+        to: z.enum(admin.ADMIN_NAV_ROUTES),
+        icon: z.enum(admin.ADMIN_NAV_ICONS),
+        group: z.string().trim().max(30).default(''),
+        enabled: z.boolean(),
+      }),
+    )
+    .min(1)
+    .max(40)
+    .nullable(),
+});
+
+const settingsSchema = z
+  .object({
+    lowStockThreshold: z.coerce.number().int().min(0).max(1000).optional(),
+    shippingStandardInr: z.coerce.number().min(0).max(100000).optional(),
+    taxMode: z.enum(['inclusive', 'exclusive', 'none']).optional(),
+    storePhone: z.string().max(32).optional(),
+    instagramUrl: link.optional(),
+  })
+  .strict();
 
 router.get(
   '/metrics',
@@ -42,6 +130,21 @@ router.get(
   '/products',
   asyncHandler(async (req, res) => {
     res.json(await admin.adminListProducts(req.query));
+  }),
+);
+
+router.post(
+  '/products/bulk',
+  validate(z.object({ ids: z.array(z.string()).min(1).max(200), status: z.enum(['draft', 'active', 'archived']) })),
+  asyncHandler(async (req, res) => {
+    res.json(await admin.adminBulkProductStatus(req.body.ids, req.body.status, req.user._id));
+  }),
+);
+
+router.post(
+  '/products/:id/duplicate',
+  asyncHandler(async (req, res) => {
+    res.status(201).json(await admin.adminDuplicateProduct(req.params.id, req.user._id));
   }),
 );
 
@@ -158,12 +261,13 @@ router.put(
 router.get(
   '/categories',
   asyncHandler(async (_req, res) => {
-    res.json({ items: await Category.find().sort({ sortOrder: 1 }) });
+    res.json({ items: await admin.adminListCategories() });
   }),
 );
 
 router.post(
   '/categories',
+  validate(categorySchema),
   asyncHandler(async (req, res) => {
     res.status(201).json(await admin.adminUpsertCategory(req.body, null, req.user._id));
   }),
@@ -171,6 +275,7 @@ router.post(
 
 router.patch(
   '/categories/:id',
+  validate(categorySchema),
   asyncHandler(async (req, res) => {
     res.json(await admin.adminUpsertCategory(req.body, req.params.id, req.user._id));
   }),
@@ -179,7 +284,9 @@ router.patch(
 router.delete(
   '/categories/:id',
   asyncHandler(async (req, res) => {
-    await Category.findByIdAndUpdate(req.params.id, { isActive: false });
+    // Soft delete: hides it from the store but keeps product links for re-enabling.
+    const cat = await Category.findByIdAndUpdate(req.params.id, { isActive: false });
+    if (!cat) throw new AppError(404, 'NOT_FOUND', 'Category not found');
     res.json({ ok: true });
   }),
 );
@@ -188,12 +295,13 @@ router.delete(
 router.get(
   '/collections',
   asyncHandler(async (_req, res) => {
-    res.json({ items: await Collection.find().sort({ sortOrder: 1 }) });
+    res.json({ items: await admin.adminListCollections() });
   }),
 );
 
 router.post(
   '/collections',
+  validate(collectionSchema),
   asyncHandler(async (req, res) => {
     res.status(201).json(await admin.adminUpsertCollection(req.body, null, req.user._id));
   }),
@@ -201,6 +309,7 @@ router.post(
 
 router.patch(
   '/collections/:id',
+  validate(collectionSchema),
   asyncHandler(async (req, res) => {
     res.json(await admin.adminUpsertCollection(req.body, req.params.id, req.user._id));
   }),
@@ -209,7 +318,8 @@ router.patch(
 router.delete(
   '/collections/:id',
   asyncHandler(async (req, res) => {
-    await Collection.findByIdAndUpdate(req.params.id, { isActive: false });
+    const col = await Collection.findByIdAndUpdate(req.params.id, { isActive: false });
+    if (!col) throw new AppError(404, 'NOT_FOUND', 'Collection not found');
     res.json({ ok: true });
   }),
 );
@@ -227,8 +337,8 @@ router.post(
   validate(
     z.object({
       variantId: z.string(),
-      delta: z.coerce.number().int(),
-      reason: z.string().min(1).max(200),
+      delta: z.coerce.number().int().min(-100000).max(100000),
+      reason: z.string().trim().min(1).max(200),
     }),
   ),
   asyncHandler(async (req, res) => {
@@ -267,9 +377,9 @@ router.post(
   validate(
     z.object({
       toStatus: z.string(),
-      trackingNumber: z.string().optional(),
-      carrier: z.string().optional(),
-      note: z.string().optional(),
+      trackingNumber: z.string().max(80).optional(),
+      carrier: z.string().max(80).optional(),
+      note: z.string().max(500).optional(),
     }),
   ),
   asyncHandler(async (req, res) => {
@@ -284,7 +394,22 @@ router.post(
 router.get(
   '/customers',
   asyncHandler(async (req, res) => {
-    res.json(await admin.adminListCustomers(req.query.q));
+    res.json(await admin.adminListCustomers(req.query));
+  }),
+);
+
+router.patch(
+  '/customers/:id',
+  validate(z.object({ name: z.string().trim().min(1).max(120).optional(), phone: z.string().trim().max(32).optional() })),
+  asyncHandler(async (req, res) => {
+    res.json(await admin.adminUpdateCustomer(req.params.id, req.body, req.user._id));
+  }),
+);
+
+router.get(
+  '/payments/transactions',
+  asyncHandler(async (req, res) => {
+    res.json(await admin.adminListPayments(req.query));
   }),
 );
 
@@ -309,14 +434,44 @@ router.post(
 router.get(
   '/homepage',
   asyncHandler(async (_req, res) => {
-    res.json({ items: await HomepageSection.find().sort({ sortOrder: 1 }) });
+    res.json({ items: await admin.adminListHomepage() });
   }),
 );
 
 router.patch(
   '/homepage/:key',
+  validate(sectionSchema),
   asyncHandler(async (req, res) => {
-    res.json(await admin.adminPatchHomepage(req.params.key, req.body, req.user._id));
+    res.json(await admin.adminSaveHomepageDraft(req.params.key, req.body, req.user._id));
+  }),
+);
+
+router.post(
+  '/homepage/:key/publish',
+  asyncHandler(async (req, res) => {
+    res.json(await admin.adminPublishHomepage(req.params.key, req.user._id));
+  }),
+);
+
+router.post(
+  '/homepage/:key/discard',
+  asyncHandler(async (req, res) => {
+    res.json(await admin.adminDiscardHomepageDraft(req.params.key, req.user._id));
+  }),
+);
+
+router.get(
+  '/navigation',
+  asyncHandler(async (_req, res) => {
+    res.json(await admin.adminGetNavigation());
+  }),
+);
+
+router.put(
+  '/navigation',
+  validate(navSchema),
+  asyncHandler(async (req, res) => {
+    res.json(await admin.adminSetNavigation(req.body.items, req.user._id));
   }),
 );
 
@@ -326,9 +481,9 @@ router.put(
     z.object({
       links: z.array(
         z.object({
-          url: z.string().url(),
-          thumbUrl: z.string().optional(),
-          caption: z.string().optional(),
+          url: link.refine((v) => /^https?:\/\//i.test(v), { message: 'Use a full https:// link' }),
+          thumbUrl: link.optional(),
+          caption: z.string().max(200).optional(),
         }),
       ),
     }),
@@ -411,6 +566,7 @@ router.get(
 
 router.patch(
   '/settings',
+  validate(settingsSchema),
   asyncHandler(async (req, res) => {
     res.json(await admin.adminPatchSettings(req.body, req.user._id));
   }),

@@ -6,144 +6,89 @@
   pointer-events: none;
 }
 
+/* Outer element falls; inner element flutters, so the two motions stay independent. */
 .leaf {
   position: absolute;
-  top: -8vh;
-  width: 37.4px;
+  top: -12vh;
+  width: 26px;
   opacity: 0;
   animation: leaf-fall linear infinite;
+  will-change: transform, opacity;
+}
+
+.leaf-sway {
+  animation: leaf-sway ease-in-out infinite alternate;
+  transform-origin: 50% 8%;
 }
 
 .leaf svg {
   display: block;
   width: 100%;
   height: auto;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.12));
 }
 
-.leaf-a {
-  left: 8vw;
-  width: 39.6px;
-  animation-duration: 26s;
-  animation-delay: -4s;
-}
-
-.leaf-b {
-  left: 46vw;
-  width: 30.8px;
-  animation-duration: 32s;
-  animation-delay: -16s;
-}
-
-.leaf-c {
-  left: 78vw;
-  width: 35.2px;
-  animation-duration: 29s;
-  animation-delay: -10s;
-}
+.leaf-1 { left: 7vw; width: 24px; animation-duration: 27s; animation-delay: -3s; }
+.leaf-1 .leaf-sway { animation-duration: 3.4s; }
+.leaf-2 { left: 28vw; width: 30px; animation-duration: 33s; animation-delay: -19s; animation-name: leaf-fall-b; }
+.leaf-2 .leaf-sway { animation-duration: 4.2s; }
+.leaf-3 { left: 52vw; width: 21px; animation-duration: 29s; animation-delay: -11s; animation-name: leaf-fall-c; }
+.leaf-3 .leaf-sway { animation-duration: 3s; }
+.leaf-4 { left: 68vw; width: 28px; animation-duration: 36s; animation-delay: -25s; }
+.leaf-4 .leaf-sway { animation-duration: 4.6s; }
+.leaf-5 { left: 84vw; width: 22px; animation-duration: 31s; animation-delay: -7s; animation-name: leaf-fall-b; }
+.leaf-5 .leaf-sway { animation-duration: 3.7s; }
+.leaf-6 { left: 93vw; width: 26px; animation-duration: 38s; animation-delay: -30s; animation-name: leaf-fall-c; }
+.leaf-6 .leaf-sway { animation-duration: 4s; }
 
 @keyframes leaf-fall {
-  0% {
-    transform: translate3d(0, -6vh, 0) rotate(-12deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.78;
-  }
-  35% {
-    transform: translate3d(16px, 34vh, 0) rotate(28deg);
-  }
-  68% {
-    transform: translate3d(-10px, 68vh, 0) rotate(72deg);
-    opacity: 0.72;
-  }
-  100% {
-    transform: translate3d(8px, 112vh, 0) rotate(128deg);
-    opacity: 0;
-  }
-}
-
-.leaf-b {
-  animation-name: leaf-fall-b;
-}
-
-.leaf-c {
-  animation-name: leaf-fall-c;
+  0% { transform: translate3d(0, 0, 0) rotate(-20deg); opacity: 0; }
+  8% { opacity: 0.85; }
+  30% { transform: translate3d(28px, 36vh, 0) rotate(25deg); }
+  62% { transform: translate3d(-18px, 74vh, 0) rotate(-15deg); }
+  90% { opacity: 0.75; }
+  100% { transform: translate3d(14px, 120vh, 0) rotate(40deg); opacity: 0; }
 }
 
 @keyframes leaf-fall-b {
-  0% {
-    transform: translate3d(0, -8vh, 0) rotate(18deg);
-    opacity: 0;
-  }
-  12% {
-    opacity: 0.7;
-  }
-  40% {
-    transform: translate3d(-18px, 40vh, 0) rotate(-24deg);
-  }
-  74% {
-    transform: translate3d(12px, 74vh, 0) rotate(-70deg);
-    opacity: 0.66;
-  }
-  100% {
-    transform: translate3d(-6px, 114vh, 0) rotate(-130deg);
-    opacity: 0;
-  }
+  0% { transform: translate3d(0, 0, 0) rotate(30deg); opacity: 0; }
+  10% { opacity: 0.8; }
+  38% { transform: translate3d(-34px, 42vh, 0) rotate(-20deg); }
+  70% { transform: translate3d(20px, 80vh, 0) rotate(35deg); }
+  90% { opacity: 0.7; }
+  100% { transform: translate3d(-10px, 122vh, 0) rotate(-25deg); opacity: 0; }
 }
 
 @keyframes leaf-fall-c {
-  0% {
-    transform: translate3d(0, -4vh, 0) rotate(8deg);
-    opacity: 0;
-  }
-  14% {
-    opacity: 0.74;
-  }
-  46% {
-    transform: translate3d(10px, 46vh, 0) rotate(48deg);
-  }
-  80% {
-    transform: translate3d(-14px, 82vh, 0) rotate(96deg);
-    opacity: 0.62;
-  }
-  100% {
-    transform: translate3d(4px, 116vh, 0) rotate(150deg);
-    opacity: 0;
-  }
+  0% { transform: translate3d(0, 0, 0) rotate(5deg); opacity: 0; }
+  12% { opacity: 0.8; }
+  45% { transform: translate3d(22px, 50vh, 0) rotate(60deg); }
+  78% { transform: translate3d(-24px, 86vh, 0) rotate(10deg); }
+  92% { opacity: 0.65; }
+  100% { transform: translate3d(6px, 124vh, 0) rotate(70deg); opacity: 0; }
+}
+
+/* rotateY gives the "tumbling" foreshortening of a real leaf without a 3D scene. */
+@keyframes leaf-sway {
+  0% { transform: rotate(-14deg) rotateY(0deg); }
+  50% { transform: rotate(6deg) rotateY(55deg); }
+  100% { transform: rotate(16deg) rotateY(10deg); }
 }
 
 @media (max-width: 640px) {
-  .leaf-a {
-    left: 6vw;
-    width: 30.8px;
+  .leaf-4,
+  .leaf-5,
+  .leaf-6 {
+    display: none;
   }
 
-  .leaf-b {
-    left: 42vw;
-    width: 24.2px;
-  }
-
-  .leaf-c {
-    left: 74vw;
-    width: 28.6px;
-  }
+  .leaf-1 { left: 6vw; }
+  .leaf-2 { left: 44vw; }
+  .leaf-3 { left: 80vw; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .leaf {
-    animation: none;
-    opacity: 0.45;
-  }
-
-  .leaf-a {
-    top: 22vh;
-  }
-
-  .leaf-b {
-    top: 48vh;
-  }
-
-  .leaf-c {
-    top: 70vh;
+  .leaf-field {
+    display: none;
   }
 }

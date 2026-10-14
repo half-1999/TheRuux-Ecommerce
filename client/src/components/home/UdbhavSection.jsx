@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { CmsLink } from './CmsLink';
 import { ArrowRight } from '@phosphor-icons/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -8,7 +8,7 @@ import { prefersReducedMotion } from '../../animations/motion';
 
 gsap.registerPlugin(ScrollTrigger);
 
-export function UdbhavSection({ collection }) {
+export function UdbhavSection({ collection, copy }) {
   const ref = useRef(null);
   const imgRef = useRef(null);
   const textRef = useRef(null);
@@ -31,14 +31,16 @@ export function UdbhavSection({ collection }) {
     return () => ctx.revert();
   }, []);
 
-  const title = collection?.name || 'Udbhav';
-  const concept = collection?.conceptLine || 'Begin again.';
+  const title = copy?.title || collection?.name || 'Udbhav';
+  const concept = copy?.subtitle || collection?.conceptLine || 'Begin again.';
   const story =
+    copy?.body ||
     collection?.story ||
     'Origin and emergence — graphics, denim, embroidery, and experimental detailing.';
-  const href = `/collections/${collection?.slug || 'udbhav'}`;
+  const href = copy?.ctaHref || `/collections/${collection?.slug || 'udbhav'}`;
   // REPLACE: official Udbhav campaign still
-  const media = !mediaFailed && collection?.heroMediaUrl ? collection.heroMediaUrl : mood.udbhav;
+  const chosen = copy?.mediaUrl || collection?.heroMediaUrl;
+  const media = !mediaFailed && chosen ? chosen : mood.udbhav;
 
   return (
     <section
@@ -59,22 +61,22 @@ export function UdbhavSection({ collection }) {
         className="relative z-10 mx-auto w-full max-w-[var(--container)] px-[var(--space-header-x)] pb-16 pt-28 will-change-transform md:pb-24"
       >
         <p className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-white/50">
-          Collection
+          {copy?.config?.eyebrow || 'Collection'}
         </p>
         <h2 className="mt-3 text-[length:var(--text-display)] font-semibold leading-none">{title}</h2>
         <p className="mt-4 font-[family-name:var(--font-script)] text-4xl text-[var(--color-brand-subtle)]">
           {concept}
         </p>
         <p className="mt-6 max-w-md text-sm leading-relaxed text-white/70">{story}</p>
-        <Link
-          to={href}
+        <CmsLink
+          href={href}
           className="mt-10 inline-flex w-fit min-h-11 items-center gap-2 border border-white/40 px-5 py-2.5 text-sm font-medium tracking-wide text-[#F5F2EC] btn-hover"
         >
-          <span>Explore {title}</span>
+          <span>{copy?.ctaLabel || `Explore ${title}`}</span>
           <span className="inline-flex h-7 w-7 items-center justify-center border border-current/20" aria-hidden>
             <ArrowRight size={16} weight="bold" />
           </span>
-        </Link>
+        </CmsLink>
       </div>
     </section>
   );

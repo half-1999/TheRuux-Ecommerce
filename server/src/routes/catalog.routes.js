@@ -54,6 +54,8 @@ export const homepageRouter = Router();
 homepageRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
+    // Always revalidate so a publish shows up on the next load.
+    res.set('Cache-Control', 'no-cache');
     res.json(await getHomepage());
   }),
 );

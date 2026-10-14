@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ArrowRight } from '@phosphor-icons/react';
+import { CmsLink } from './CmsLink';
 import { AnimatePresence, motion } from 'framer-motion';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -14,22 +14,24 @@ const SLIDES = [mood.hero, mood.udbhav, mood.bestsellers, mood.grid[0], mood.gri
 /** Mixkit free-use clip: a woman choosing a dress in a clothing store. CMS mediaUrl replaces this when set. */
 const PUBLIC_HERO_VIDEO = '/hero/dresses.mp4';
 
-export function HeroSection({ section }) {
+export function HeroSection({ section, copy }) {
   const sectionRef = useRef(null);
   const mediaRef = useRef(null);
   const [index, setIndex] = useState(0);
   const [videoFailed, setVideoFailed] = useState(false);
   const cmsVideo =
     section?.mediaUrl && section.mediaUrl !== '/hero/hero.mp4' ? section.mediaUrl : '';
-  const videoUrl = videoFailed || section?.mediaType === 'image' ? '' : cmsVideo || PUBLIC_HERO_VIDEO;
+  const isImage = section?.mediaType === 'image';
+  const videoUrl = videoFailed || isImage ? '' : cmsVideo || PUBLIC_HERO_VIDEO;
+  const slides = isImage && section.mediaUrl ? [section.mediaUrl] : SLIDES;
 
   useEffect(() => {
-    if (prefersReducedMotion() || videoUrl) return undefined;
+    if (prefersReducedMotion() || videoUrl || slides.length < 2) return undefined;
     const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % SLIDES.length);
+      setIndex((i) => (i + 1) % slides.length);
     }, 5200);
     return () => window.clearInterval(id);
-  }, [videoUrl]);
+  }, [videoUrl, slides.length]);
 
   useEffect(() => {
     if (prefersReducedMotion() || !sectionRef.current || !mediaRef.current) return undefined;
@@ -77,8 +79,8 @@ export function HeroSection({ section }) {
         ) : (
           <AnimatePresence mode="sync">
             <motion.img
-              key={SLIDES[index]}
-              src={SLIDES[index]}
+              key={slides[index % slides.length]}
+              src={slides[index % slides.length]}
               alt=""
               initial={{ opacity: 0, scale: 1.06 }}
               animate={{ opacity: 0.72, scale: 1 }}
@@ -110,7 +112,7 @@ export function HeroSection({ section }) {
           transition={{ duration: 0.75, ease: EASE, delay: 0.12 }}
           className="font-[family-name:var(--font-script)] text-[clamp(3rem,8vw,6.5rem)] leading-[0.9]"
         >
-          Beyond Boundaries.
+          {copy?.title || 'Beyond Boundaries.'}
         </motion.p>
         <motion.p
           initial={{ opacity: 0, y: 14 }}
@@ -118,7 +120,7 @@ export function HeroSection({ section }) {
           transition={{ duration: 0.55, ease: EASE, delay: 0.28 }}
           className="mt-5 max-w-md text-sm text-white/70 md:text-base"
         >
-          Minimal on the surface. Personality in the details.
+          {copy?.subtitle || 'Minimal on the surface. Personality in the details.'}
         </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -126,11 +128,11 @@ export function HeroSection({ section }) {
           transition={{ duration: 0.55, ease: EASE, delay: 0.4 }}
           className="mt-10"
         >
-          <Link
-            to="/shop"
+          <CmsLink
+            href={copy?.ctaHref || '/shop'}
             className="inline-flex min-h-11 items-center gap-2 border border-white/45 px-6 py-2.5 text-sm font-medium tracking-wide text-[#F5F2EC] btn-hover active:scale-[0.98]"
           >
-            <span>Explore</span>
+            <span>{copy?.ctaLabel || 'Explore'}</span>
 
             <span
               className="inline-flex h-7 w-7 items-center justify-center border border-[#5F6F64]/40"
@@ -138,13 +140,13 @@ export function HeroSection({ section }) {
             >
               <ArrowRight size={16} weight="bold" />
             </span>
-          </Link>
+          </CmsLink>
 
         </motion.div>
 
-        {!videoUrl ? (
+        {!videoUrl && slides.length > 1 ? (
           <div className="mt-10 flex gap-2" aria-hidden>
-            {SLIDES.map((src, i) => (
+            {slides.map((src, i) => (
               <button
                 key={src}
                 type="button"

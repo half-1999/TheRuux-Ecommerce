@@ -30,20 +30,24 @@ export function CmsPage({ slug: slugProp, title: titleProp }) {
 
   const title = data?.title || titleProp || raw?.replace(/-/g, ' ');
   const body = data?.body;
+  const hasBanner = apiSlug === 'about-us' || apiSlug === 'our-story';
 
   return (
-    <div className="h-screen mb-10">
-      {(apiSlug === 'about-us' || apiSlug === 'our-story') && (
-        <div className="relative overflow-hidden bg-[var(--color-bg-inverse)]">
+    <div className="min-h-[70svh]">
+      {hasBanner && (
+        // Explicit height: the image is absolutely positioned, and the fixed header overlaps the top.
+        <section className="relative isolate flex min-h-[58svh] items-end overflow-hidden bg-[var(--color-bg-inverse)] pt-[calc(var(--header-height)+1.5rem)] md:min-h-[68svh]">
           {/* REPLACE: brand story photography */}
-          <img src={mood.about} alt="" className="absolute inset-0 h-full w-full object-cover opacity-55" />
-          <div className="relative z-10 mx-auto flex max-w-[var(--container)] items-end px-[var(--space-header-x)] pb-10 pt-28 text-white">
-            <h1 className="text-[length:var(--text-display)] font-semibold">{title}</h1>
+          <img src={mood.about} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover object-[center_20%]" fetchPriority="high" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/75 via-black/35 to-black/45" aria-hidden />
+          <div className="mx-auto w-full max-w-[var(--container)] px-[var(--space-header-x)] pb-10 text-[#F5F2EC] md:pb-16">
+            <p className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-white/60">TheRuux</p>
+            <h1 className="mt-3 max-w-3xl text-[length:var(--text-display)] font-semibold leading-none">{title}</h1>
           </div>
-        </div>
+        </section>
       )}
-      <div className="mx-auto max-w-[var(--container-narrow)] px-[var(--space-header-x)] pt-50 h-screen pb-24">
-        {!(apiSlug === 'about-us' || apiSlug === 'our-story') ? (
+      <div className={`mx-auto max-w-[var(--container-narrow)] px-[var(--space-header-x)] pb-24 ${hasBanner ? 'pt-12 md:pt-16' : 'pt-50'}`}>
+        {!hasBanner ? (
           <>
             <nav className="text-xs uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
               <Link to="/">Home</Link>
@@ -74,7 +78,7 @@ export function ContactPage() {
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="mx-auto max-w-[var(--container-narrow)] px-[var(--space-header-x)] pt-50 h-screen pb-24">
+    <div className="mx-auto min-h-[70svh] max-w-[var(--container-narrow)] px-[var(--space-header-x)] pt-50 pb-24">
       <h1 className="text-3xl font-semibold">Contact</h1>
       <p className="mt-2 text-sm text-[var(--color-text-muted)]">We read every note.</p>
       <form

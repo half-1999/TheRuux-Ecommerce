@@ -44,7 +44,7 @@ export function Footer() {
       <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] py-[var(--space-section-y)]">
         <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <img src="/brand/logo.png" alt="TheRuux" className="h-35 w-auto object-contain" />
+            <img src="/brand/logo.png" alt="TheRuux" className="h-10 w-auto object-contain" />
             <p
               className="mt-4 font-[family-name:var(--font-script)] text-4xl text-[var(--color-brand)] md:text-5xl"
               aria-label="Beyond Boundaries"

@@ -40,14 +40,15 @@ export const reserveOrderStock = async (order, { session, reason, adminId } = {}
     const already = -(net.get(String(item.variantId)) || 0);
     const need = item.quantity - already;
     if (need <= 0) continue;
-    let query = Variant.findById(item.variantId);
-    if (session) query = query.session(session);
-    const variant = await query;
-    if (!variant || variant.stockQty < need) {
+    // Conditional $inc: two concurrent captures can't both take the last unit.
+    const variant = await Variant.findOneAndUpdate(
+      { _id: item.variantId, stockQty: { $gte: need } },
+      { $inc: { stockQty: -need } },
+      { new: true, ...sessionOpts(session) },
+    );
+    if (!variant) {
       throw new AppError(409, 'OUT_OF_STOCK', `Insufficient stock for ${item.sku || 'item'}`);
     }
-    variant.stockQty -= need;
-    await variant.save(sessionOpts(session));
     await InventoryAdjustment.create(
       [
         {
@@ -69,12 +70,12 @@ export const releaseOrderStock = async (order, { session, reason, adminId } = {}
     const taken = -(net.get(String(item.variantId)) || 0);
     if (taken <= 0) continue;
     const restore = Math.min(taken, item.quantity);
-    let query = Variant.findById(item.variantId);
-    if (session) query = query.session(session);
-    const variant = await query;
+    const variant = await Variant.findOneAndUpdate(
+      { _id: item.variantId },
+      { $inc: { stockQty: restore } },
+      { new: true, ...sessionOpts(session) },
+    );
     if (!variant) continue;
-    variant.stockQty += restore;
-    await variant.save(sessionOpts(session));
     await InventoryAdjustment.create(
       [
         {
@@ -91,57 +92,85 @@ export const releaseOrderStock = async (order, { session, reason, adminId } = {}
 };
 
 export const adjustStock = async ({ variantId, delta, reason, adminId }) => {
-  const variant = await Variant.findById(variantId);
-  if (!variant) throw new AppError(404, 'NOT_FOUND', 'Variant not found');
-
-  const next = variant.stockQty + Number(delta);
-  if (next < 0) throw new AppError(400, 'VALIDATION_ERROR', 'Stock cannot go negative');
-
-  variant.stockQty = next;
-  await variant.save();
-  await InventoryAdjustment.create({
-    variantId,
-    delta: Number(delta),
-    reason,
-    adminId,
-  });
+  const change = Number(delta);
+  if (!Number.isInteger(change) || change === 0) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'Adjustment must be a whole number other than zero');
+  }
+  // Single conditional update: no lost writes and never below zero.
+  const variant = await Variant.findOneAndUpdate(
+    { _id: variantId, ...(change < 0 ? { stockQty: { $gte: -change } } : {}) },
+    { $inc: { stockQty: change } },
+    { new: true },
+  );
+  if (!variant) {
+    if (await Variant.exists({ _id: variantId })) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'Stock cannot go negative');
+    }
+    throw new AppError(404, 'NOT_FOUND', 'Variant not found');
+  }
+  await InventoryAdjustment.create({ variantId, delta: change, reason, adminId });
   return variant;
 };
 
-export const listInventory = async ({ q, lowStock } = {}) => {
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+export const listInventory = async ({ q, lowStock, stock, page = 1, pageSize = 50 } = {}) => {
   const settings = await Settings.findOne({ key: 'store' }).lean();
   const threshold = settings?.lowStockThreshold ?? env.lowStockThreshold;
+  const limit = Math.min(Math.max(Number(pageSize) || 50, 1), 200);
+  const current = Math.max(Number(page) || 1, 1);
 
   const filter = {};
-  if (q) filter.sku = new RegExp(q, 'i');
-  if (lowStock === true || lowStock === 'true') {
-    filter.stockQty = { $lte: threshold };
+  if (q) {
+    const rx = new RegExp(escapeRegex(String(q).trim()), 'i');
+    const matches = await Product.find({ $or: [{ name: rx }, { title: rx }] }).select('_id').limit(200).lean();
+    filter.$or = [{ sku: rx }, { productId: { $in: matches.map((p) => p._id) } }];
+  }
+  if (stock === 'out') filter.stockQty = { $lte: 0 };
+  else if (stock === 'low' || lowStock === true || lowStock === 'true') {
+    filter.stockQty = { $gt: 0, $lte: threshold };
   }
 
-  const variants = await Variant.find(filter).sort({ stockQty: 1 }).lean();
+  const [variants, total] = await Promise.all([
+    Variant.find(filter)
+      .sort({ stockQty: 1, sku: 1 })
+      .skip((current - 1) * limit)
+      .limit(limit)
+      .lean(),
+    Variant.countDocuments(filter),
+  ]);
   const productIds = [...new Set(variants.map((v) => String(v.productId)))];
-  const products = await Product.find({ _id: { $in: productIds } }).lean();
+  const products = await Product.find({ _id: { $in: productIds } }).select('name title slug images').lean();
   const pMap = Object.fromEntries(products.map((p) => [String(p._id), p]));
 
   return {
     threshold,
-    items: variants.map((v) => ({
-      id: v._id.toString(),
-      sku: v.sku,
-      size: v.size,
-      colourName: v.colourName,
-      stockQty: v.stockQty,
-      isActive: v.isActive,
-      lowStock: v.stockQty <= threshold,
-      product: pMap[String(v.productId)]
-        ? {
-            id: pMap[String(v.productId)]._id.toString(),
-            name: pMap[String(v.productId)].name,
-            title: pMap[String(v.productId)].title,
-            slug: pMap[String(v.productId)].slug,
-          }
-        : null,
-    })),
+    page: current,
+    pageSize: limit,
+    total,
+    items: variants.map((v) => {
+      const p = pMap[String(v.productId)];
+      return {
+        id: v._id.toString(),
+        sku: v.sku,
+        size: v.size,
+        colourName: v.colourName,
+        stockQty: v.stockQty,
+        isActive: v.isActive,
+        lowStock: v.stockQty <= threshold,
+        stockStatus: v.stockQty <= 0 ? 'out' : v.stockQty <= threshold ? 'low' : 'in',
+        updatedAt: v.updatedAt,
+        product: p
+          ? {
+              id: p._id.toString(),
+              name: p.name,
+              title: p.title,
+              slug: p.slug,
+              imageUrl: [...(p.images || [])].sort((a, b) => a.sortOrder - b.sortOrder)[0]?.url || '',
+            }
+          : null,
+      };
+    }),
   };
 };
 

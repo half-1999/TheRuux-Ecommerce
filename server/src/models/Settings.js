@@ -26,6 +26,7 @@ const settingsSchema = new mongoose.Schema(
         enabled: { type: Boolean, default: true },
       },
     ],
+    adminNav: { type: mongoose.Schema.Types.Mixed, default: null },
   },
   { timestamps: true },
 );

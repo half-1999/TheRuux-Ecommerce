@@ -10,6 +10,7 @@
     "lint": "eslint src --max-warnings=0",
     "seed": "node src/scripts/seed.js",
     "test:api": "node src/scripts/smoke-api.js",
+    "test:admin": "node src/scripts/test-admin.js",
     "verify:phase2": "node src/scripts/verify-phase2.js"
   },
   "dependencies": {

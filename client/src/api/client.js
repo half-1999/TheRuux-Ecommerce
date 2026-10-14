@@ -45,6 +45,7 @@ export const getGuestToken = () => {
 };
 
 async function request(path, { method = 'GET', body, token, headers, guest = false, retry = true } = {}) {
+  const isForm = body instanceof window.FormData;
   let accessToken = token ?? useAuthStore.getState().accessToken;
   if (retry && !SKIP_REFRESH.has(path) && accessToken && accessTokenExpired(accessToken)) {
     try {
@@ -59,12 +60,12 @@ async function request(path, { method = 'GET', body, token, headers, guest = fal
     method,
     credentials: 'include',
     headers: {
-      ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...(body && !isForm ? { 'Content-Type': 'application/json' } : {}),
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...(guest ? { 'X-Guest-Token': getGuestToken() } : {}),
       ...headers,
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: isForm ? body : body ? JSON.stringify(body) : undefined,
   });
 
   const data = await res.json().catch(() => ({}));
@@ -98,6 +99,7 @@ export const api = {
   get: (path, opts) => request(path, { ...opts, method: 'GET' }),
   post: (path, body, opts) => request(path, { ...opts, method: 'POST', body }),
   patch: (path, body, opts) => request(path, { ...opts, method: 'PATCH', body }),
+  put: (path, body, opts) => request(path, { ...opts, method: 'PUT', body }),
   delete: (path, opts) => request(path, { ...opts, method: 'DELETE' }),
 };
 
@@ -174,8 +176,16 @@ export const adminApi = {
   createProduct: (body) => api.post('/admin/products', body),
   updateProduct: (id, body) => api.patch(`/admin/products/${id}`, body),
   archiveProduct: (id) => api.post(`/admin/products/${id}/archive`),
+  duplicateProduct: (id) => api.post(`/admin/products/${id}/duplicate`),
+  bulkProductStatus: (ids, status) => api.post('/admin/products/bulk', { ids, status }),
+  upload: (file) => {
+    const form = new window.FormData();
+    form.append('file', file);
+    return api.post('/admin/media/upload', form);
+  },
   addImages: (id, images) => api.post(`/admin/products/${id}/images`, { images }),
   deleteImage: (id, imageId) => api.delete(`/admin/products/${id}/images/${imageId}`),
+  reorderImages: (id, imageIds) => api.patch(`/admin/products/${id}/images/reorder`, { imageIds }),
   createVariant: (id, body) => api.post(`/admin/products/${id}/variants`, body),
   updateVariant: (id, body) => api.patch(`/admin/variants/${id}`, body),
   deactivateVariant: (id) => api.delete(`/admin/variants/${id}`),
@@ -201,8 +211,14 @@ export const adminApi = {
   customers: (params) => api.get(`/admin/customers${q(params)}`),
   customer: (id) => api.get(`/admin/customers/${id}`),
   setCustomerStatus: (id, status) => api.post(`/admin/customers/${id}/status`, { status }),
+  updateCustomer: (id, body) => api.patch(`/admin/customers/${id}`, body),
+  transactions: (params) => api.get(`/admin/payments/transactions${q(params)}`),
   homepage: () => api.get('/admin/homepage'),
   patchHomepage: (key, body) => api.patch(`/admin/homepage/${key}`, body),
+  publishHomepage: (key) => api.post(`/admin/homepage/${key}/publish`),
+  discardHomepage: (key) => api.post(`/admin/homepage/${key}/discard`),
+  navigation: () => api.get('/admin/navigation'),
+  setNavigation: (items) => api.put('/admin/navigation', { items }),
   setHomepageInstagram: (links) => api.put('/admin/instagram/homepage', { links }),
   page: (slug) => api.get(`/admin/pages/${slug}`),
   upsertPage: (slug, body) => api.patch(`/admin/pages/${slug}`, body),

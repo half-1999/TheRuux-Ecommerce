@@ -11,11 +11,12 @@ import { getNewArrivals, getBestsellers } from './product.service.js';
 import { serializeProductListItem } from '../utils/serializers.js';
 
 export const listCategories = async () => {
-  const cats = await Category.find({ isActive: true }).sort({ sortOrder: 1 }).lean();
+  const cats = await Category.find({ isActive: true }).sort({ sortOrder: 1, name: 1 }).lean();
   return cats.map((c) => ({
     id: c._id.toString(),
     name: c.name,
     slug: c.slug,
+    description: c.description || '',
     imageUrl: c.imageUrl,
     sortOrder: c.sortOrder,
   }));
@@ -86,7 +87,8 @@ export const getCollectionBySlug = async (slug) => {
 
 export const getHomepage = async () => {
   const [sections, newArrivals, bestsellers, categories, collection, ig] = await Promise.all([
-    HomepageSection.find({ isActive: true }).sort({ sortOrder: 1 }).lean(),
+    // Live (published) fields only — drafts never leave the admin API.
+    HomepageSection.find().select('-draft').sort({ sortOrder: 1 }).lean(),
     getNewArrivals(4),
     getBestsellers(8),
     listCategories(),
@@ -106,6 +108,8 @@ export const getHomepage = async () => {
       mediaType: s.mediaType,
       config: s.config,
       sortOrder: s.sortOrder,
+      isActive: s.isActive !== false,
+      publishedAt: s.publishedAt || null,
     })),
     newArrivals,
     bestsellers,
@@ -122,17 +126,12 @@ export const getHomepage = async () => {
         }
       : null,
     instagram: {
-      eyebrow: 'THE RUUX, OUT THERE.',
       links: ig.map((l) => ({
         id: l._id.toString(),
         url: l.url,
         thumbUrl: l.thumbUrl,
         caption: l.caption,
       })),
-    },
-    newsletter: {
-      title: 'STAY IN THE LOOP.',
-      body: 'New drops. New stories. No unnecessary emails.',
     },
   };
 };

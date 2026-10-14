@@ -40,7 +40,7 @@ export function AdminLoginPage() {
           }
         }}
       >
-        <img src="/brand/logo.png" alt="TheRuux" style={{ height: 36, filter: 'brightness(0) invert(1)' }} />
+        <img src="/brand/logo.png" alt="TheRuux" style={{ height: 36, width: 'auto' }} />
         <p className="admin-muted" style={{ marginTop: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           Admin console
         </p>

@@ -66,11 +66,14 @@ const AdminPaymentsPage = lazy(() =>
 const AdminShippingPage = lazy(() =>
   import('./pages/admin/AdminShippingPage').then((m) => ({ default: m.AdminShippingPage })),
 );
+const AdminNavigationPage = lazy(() =>
+  import('./pages/admin/AdminNavigationPage').then((m) => ({ default: m.AdminNavigationPage })),
+);
 
 function AdminFallback() {
   return (
     <div className="admin-root" style={{ padding: '2rem' }}>
-      Loading ops…
+      Loading…
     </div>
   );
 }
@@ -100,6 +103,7 @@ function AnimatedRoutes() {
               <Route path="payments" element={<AdminPaymentsPage />} />
               <Route path="shipping" element={<AdminShippingPage />} />
               <Route path="settings" element={<AdminSettingsPage />} />
+              <Route path="navigation" element={<AdminNavigationPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/admin" replace />} />

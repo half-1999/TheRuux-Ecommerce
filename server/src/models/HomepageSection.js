@@ -26,6 +26,9 @@ const homepageSectionSchema = new mongoose.Schema(
     config: { type: mongoose.Schema.Types.Mixed, default: {} },
     sortOrder: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    // Unpublished edits; public API only reads the live fields above.
+    draft: { type: mongoose.Schema.Types.Mixed, default: null },
+    publishedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

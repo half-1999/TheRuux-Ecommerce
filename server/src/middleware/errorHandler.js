@@ -13,12 +13,32 @@ export const errorHandler = (err, _req, res, _next) => {
   }
 
   if (err?.name === 'ZodError') {
+    const first = err.errors?.[0];
     return res.status(400).json({
       error: {
         code: 'VALIDATION_ERROR',
-        message: 'Invalid request',
+        message: first ? `${first.path.join('.') || 'Request'}: ${first.message}` : 'Invalid request',
         details: err.errors,
       },
+    });
+  }
+
+  if (err?.name === 'CastError') {
+    return res.status(400).json({
+      error: { code: 'VALIDATION_ERROR', message: `Invalid ${err.path || 'id'}` },
+    });
+  }
+
+  if (err?.code === 11000) {
+    const field = Object.keys(err.keyValue || {})[0] || 'value';
+    return res.status(409).json({
+      error: { code: 'DUPLICATE', message: `That ${field} is already in use` },
+    });
+  }
+
+  if (err?.name === 'ValidationError') {
+    return res.status(400).json({
+      error: { code: 'VALIDATION_ERROR', message: err.message },
     });
   }
 
