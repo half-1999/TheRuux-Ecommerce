@@ -21,24 +21,24 @@
   transform-origin: 50% 8%;
 }
 
-.leaf svg {
+.leaf img {
   display: block;
   width: 100%;
   height: auto;
-  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.12));
+  filter: drop-shadow(0 6px 8px rgb(0 0 0 / 0.18));
 }
 
-.leaf-1 { left: 7vw; width: 24px; animation-duration: 27s; animation-delay: -3s; }
+.leaf-1 { left: 6vw; width: 92px; animation-duration: 27s; animation-delay: -3s; }
 .leaf-1 .leaf-sway { animation-duration: 3.4s; }
-.leaf-2 { left: 28vw; width: 30px; animation-duration: 33s; animation-delay: -19s; animation-name: leaf-fall-b; }
+.leaf-2 { left: 24vw; width: 118px; animation-duration: 33s; animation-delay: -19s; animation-name: leaf-fall-b; }
 .leaf-2 .leaf-sway { animation-duration: 4.2s; }
-.leaf-3 { left: 52vw; width: 21px; animation-duration: 29s; animation-delay: -11s; animation-name: leaf-fall-c; }
+.leaf-3 { left: 46vw; width: 78px; animation-duration: 29s; animation-delay: -11s; animation-name: leaf-fall-c; }
 .leaf-3 .leaf-sway { animation-duration: 3s; }
-.leaf-4 { left: 68vw; width: 28px; animation-duration: 36s; animation-delay: -25s; }
+.leaf-4 { left: 62vw; width: 104px; animation-duration: 36s; animation-delay: -25s; }
 .leaf-4 .leaf-sway { animation-duration: 4.6s; }
-.leaf-5 { left: 84vw; width: 22px; animation-duration: 31s; animation-delay: -7s; animation-name: leaf-fall-b; }
+.leaf-5 { left: 76vw; width: 86px; animation-duration: 31s; animation-delay: -7s; animation-name: leaf-fall-b; }
 .leaf-5 .leaf-sway { animation-duration: 3.7s; }
-.leaf-6 { left: 93vw; width: 26px; animation-duration: 38s; animation-delay: -30s; animation-name: leaf-fall-c; }
+.leaf-6 { left: 88vw; width: 110px; animation-duration: 38s; animation-delay: -30s; animation-name: leaf-fall-c; }
 .leaf-6 .leaf-sway { animation-duration: 4s; }
 
 @keyframes leaf-fall {
@@ -82,9 +82,9 @@
     display: none;
   }
 
-  .leaf-1 { left: 6vw; }
-  .leaf-2 { left: 44vw; }
-  .leaf-3 { left: 80vw; }
+  .leaf-1 { left: 4vw; width: 72px; }
+  .leaf-2 { left: 38vw; width: 88px; }
+  .leaf-3 { left: 72vw; width: 64px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

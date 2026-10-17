@@ -23,7 +23,7 @@ export function CollectionPage() {
           <p className="text-[11px] uppercase tracking-[var(--tracking-caps)] text-white/60">Collection</p>
           <h1 className="mt-2 text-[length:var(--text-display)] font-semibold">{data?.name || slug}</h1>
           {data?.conceptLine ? (
-            <p className="mt-3 font-[family-name:var(--font-script)] text-4xl text-[var(--color-brand-subtle)]">
+            <p className="mt-3 font-[family-name:var(--font-script)] text-5xl leading-[1.2] text-[var(--color-brand-subtle)]">
               {data.conceptLine}
             </p>
           ) : null}

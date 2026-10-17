@@ -64,7 +64,7 @@ export function UdbhavSection({ collection, copy }) {
           {copy?.config?.eyebrow || 'Collection'}
         </p>
         <h2 className="mt-3 text-[length:var(--text-display)] font-semibold leading-none">{title}</h2>
-        <p className="mt-4 font-[family-name:var(--font-script)] text-4xl text-[var(--color-brand-subtle)]">
+        <p className="mt-4 font-[family-name:var(--font-script)] text-5xl leading-[1.2] text-[var(--color-brand-subtle)]">
           {concept}
         </p>
         <p className="mt-6 max-w-md text-sm leading-relaxed text-white/70">{story}</p>

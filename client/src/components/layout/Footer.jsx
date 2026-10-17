@@ -46,7 +46,7 @@ export function Footer() {
           <div>
             <img src="/brand/logo.png" alt="TheRuux" className="h-10 w-auto object-contain" />
             <p
-              className="mt-4 font-[family-name:var(--font-script)] text-4xl text-[var(--color-brand)] md:text-5xl"
+              className="mt-4 font-[family-name:var(--font-script)] text-5xl leading-[1.2] text-[var(--color-brand)] md:text-6xl"
               aria-label="Beyond Boundaries"
             >
               Beyond Boundaries.

@@ -42,7 +42,7 @@ function Tile({ category, index, total }) {
           ) : (
             // Brand tile for categories that have no photography yet.
             <div className="flex h-full w-full items-center justify-center bg-[var(--color-brand)]">
-              <span className="font-[family-name:var(--font-script)] text-6xl text-[var(--color-brand-subtle)]">{category.name.charAt(0)}</span>
+              <span className="font-[family-name:var(--font-script)] text-7xl leading-none text-[var(--color-brand-subtle)]">{category.name.charAt(0)}</span>
             </div>
           )}
         </div>
