@@ -110,7 +110,7 @@ export function HeroSection({ section, copy }) {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.75, ease: EASE, delay: 0.12 }}
-          className="font-[family-name:var(--font-script)] text-[clamp(3.4rem,8vw,7rem)] leading-[1.15]"
+          className="mt-1 font-[family-name:var(--font-script)] text-[clamp(1.65rem,3.2vw,2.6rem)] leading-[1.2] text-white/80"
         >
           {copy?.title || 'Beyond Boundaries.'}
         </motion.p>

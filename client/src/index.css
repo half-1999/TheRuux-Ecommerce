@@ -62,8 +62,14 @@ img {
   display: block;
 }
 
-button {
+button,
+[role='button'],
+summary,
+.btn-hover,
+a.admin-btn,
+label.admin-btn {
   font: inherit;
+  cursor: pointer;
 }
 
 button,
@@ -90,6 +96,36 @@ button:not(:disabled):focus-visible,
 button:disabled,
 .admin-btn:disabled {
   cursor: not-allowed;
+}
+
+button.wish-heart,
+button.wish-heart:hover,
+button.wish-heart:focus-visible {
+  background-color: transparent;
+  border-color: transparent;
+  color: #fff;
+}
+
+button.wish-heart:hover,
+button.wish-heart:focus-visible,
+button.wish-heart[aria-pressed='true'] {
+  color: var(--color-brand);
+}
+
+button.wish-heart .wish-heart-fill {
+  opacity: 0;
+}
+
+button.wish-heart:hover .wish-heart-outline,
+button.wish-heart:focus-visible .wish-heart-outline,
+button.wish-heart[aria-pressed='true'] .wish-heart-outline {
+  opacity: 0;
+}
+
+button.wish-heart:hover .wish-heart-fill,
+button.wish-heart:focus-visible .wish-heart-fill,
+button.wish-heart[aria-pressed='true'] .wish-heart-fill {
+  opacity: 1;
 }
 
 /* Soft brand-green cast on headings. Pale sage on dark sections so type stays readable. */

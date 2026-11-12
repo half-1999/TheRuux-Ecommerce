@@ -1,9 +1,45 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, UploadSimple } from '@phosphor-icons/react';
 import { adminApi } from '../../api/client';
 import { Field, Notice, PageHeader } from '../../components/admin/AdminUI';
+
+const CREATE_SIZES = ['XS', 'S', 'M', 'L', 'XL'];
+
+const slugify = (text) =>
+  String(text)
+    .toLowerCase()
+    .trim()
+    .replace(/['"]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const skuFor = (name, size) => {
+  const base = String(name || '').toUpperCase().replace(/[^A-Z0-9]+/g, '').slice(0, 12);
+  return base ? `${base}-${size}` : '';
+};
+
+const suggestSeo = (form) => ({
+  slug: slugify([form.name, form.title].map((part) => part.trim()).filter(Boolean).join(' ')),
+  seoTitle: [form.name, form.title].map((part) => part.trim()).filter(Boolean).join(' — ').slice(0, 160),
+  seoDescription: [form.description, form.details]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .slice(0, 320),
+});
+
+const blankVariants = () =>
+  CREATE_SIZES.map((size) => ({
+    size,
+    sku: '',
+    colourName: 'Black',
+    colourHex: '#111111',
+    stockQty: 10,
+    skuTouched: false,
+  }));
 
 const emptyForm = {
   name: '',
@@ -140,6 +176,8 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [variant, setVariant] = useState({ sku: '', size: 'M', colourName: 'Black', colourHex: '#111111', stockQty: 10 });
+  const [draftVariants, setDraftVariants] = useState(blankVariants);
+  const seoTouched = useRef({ slug: false, seoTitle: false, seoDescription: false });
   const [igUrls, setIgUrls] = useState((initialDetail?.instagramLinks || []).map((l) => l.url).join('\n'));
 
   const cats = useQuery({ queryKey: ['admin-categories'], queryFn: adminApi.categories });
@@ -156,7 +194,20 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
 
   const set = (key) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setForm((f) => ({ ...f, [key]: value }));
+    if (isNew && key in seoTouched.current) seoTouched.current[key] = true;
+    setForm((f) => {
+      const next = { ...f, [key]: value };
+      if (isNew && ['name', 'title', 'description', 'details'].includes(key)) {
+        const suggested = suggestSeo(next);
+        if (!seoTouched.current.slug) next.slug = suggested.slug;
+        if (!seoTouched.current.seoTitle) next.seoTitle = suggested.seoTitle;
+        if (!seoTouched.current.seoDescription) next.seoDescription = suggested.seoDescription;
+      }
+      return next;
+    });
+    if (isNew && key === 'name') {
+      setDraftVariants((rows) => rows.map((row) => (row.skuTouched ? row : { ...row, sku: skuFor(value, row.size) })));
+    }
     if (errors[key]) setErrors((x) => ({ ...x, [key]: undefined }));
   };
   const refresh = () => {
@@ -179,7 +230,13 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
         return adminApi.createProduct({
           ...body,
           images: pendingImages,
-          variants: variant.sku ? [{ ...variant, stockQty: Number(variant.stockQty) || 0 }] : [],
+          variants: draftVariants.map((row) => ({
+            sku: (row.skuTouched ? row.sku.trim() : skuFor(form.name, row.size)) || skuFor(form.name, row.size),
+            size: row.size,
+            colourName: row.colourName.trim() || 'Black',
+            colourHex: row.colourHex || '#111111',
+            stockQty: Math.max(0, Number(row.stockQty) || 0),
+          })),
         });
       }
       return adminApi.updateProduct(id, body);
@@ -287,8 +344,8 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
     <>
       <PageHeader
         crumbs={[{ label: 'Products', to: '/admin/products' }, { label: isNew ? 'New' : form.name || 'Edit' }]}
-        title={isNew ? 'Create New Product' : `${initialForm.name} — ${initialForm.title}`}
-        description={isNew ? 'Saved as a draft until you set the status to active.' : `/${initialForm.slug}`}
+        title={isNew ? 'New product' : `${initialForm.name} — ${initialForm.title}`}
+        description={isNew ? 'A SKU is created for every size. Stock starts at 10.' : `/${initialForm.slug}`}
         actions={
           <>
             {!isNew && form.status === 'active' ? (
@@ -318,7 +375,7 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
       <div className="admin-form-grid">
         <div className="admin-stack">
           <section className="admin-card">
-            <h2>Basic information</h2>
+            <h2>{isNew ? 'Product' : 'Basic information'}</h2>
             <div className="admin-row">
               <Field label="Name (one word)" error={errors.name}>
                 {(fid) => <input id={fid} value={form.name} onChange={set('name')} maxLength={40} required />}
@@ -327,31 +384,54 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
                 {(fid) => <input id={fid} value={form.title} onChange={set('title')} required />}
               </Field>
             </div>
-            <Field label="Naming note (internal)">{(fid) => <input id={fid} value={form.namingNote} onChange={set('namingNote')} />}</Field>
+            {isNew ? (
+              <div className="admin-row">
+                <Field label="Price (INR)" error={errors.basePrice}>
+                  {(fid) => <input id={fid} type="number" min="0" step="1" inputMode="decimal" value={form.basePrice} onChange={set('basePrice')} />}
+                </Field>
+                <Field label="Compare-at (INR)" error={errors.compareAtPrice}>
+                  {(fid) => <input id={fid} type="number" min="0" step="1" inputMode="decimal" value={form.compareAtPrice} onChange={set('compareAtPrice')} />}
+                </Field>
+              </div>
+            ) : (
+              <Field label="Naming note (internal)">{(fid) => <input id={fid} value={form.namingNote} onChange={set('namingNote')} />}</Field>
+            )}
           </section>
 
           <section className="admin-card">
             <h2>Description</h2>
             <Field label="Description">{(fid) => <textarea id={fid} value={form.description} onChange={set('description')} rows={4} />}</Field>
             <Field label="Details">{(fid) => <textarea id={fid} value={form.details} onChange={set('details')} />}</Field>
-            <Field label="Key features" hint="One per line">
-              {(fid) => <textarea id={fid} value={form.featuresText} onChange={set('featuresText')} rows={4} />}
-            </Field>
-            <div className="admin-row">
-              <Field label="Fabric">{(fid) => <input id={fid} value={form.fabric} onChange={set('fabric')} />}</Field>
-              <Field label="Fit">{(fid) => <input id={fid} value={form.fit} onChange={set('fit')} />}</Field>
-              <Field label="Care">{(fid) => <input id={fid} value={form.care} onChange={set('care')} />}</Field>
-            </div>
-            <div className="admin-row">
-              <Field label="Size guide">{(fid) => <textarea id={fid} value={form.sizeGuide} onChange={set('sizeGuide')} rows={3} />}</Field>
-              <Field label="Model info">{(fid) => <textarea id={fid} value={form.modelInfo} onChange={set('modelInfo')} rows={3} />}</Field>
-            </div>
+            {isNew ? (
+              <details className="admin-fold" style={{ marginTop: '0.25rem' }}>
+                <summary>Fabric, fit and features</summary>
+                <Field label="Key features" hint="One per line">
+                  {(fid) => <textarea id={fid} value={form.featuresText} onChange={set('featuresText')} rows={3} />}
+                </Field>
+                <div className="admin-row">
+                  <Field label="Fabric">{(fid) => <input id={fid} value={form.fabric} onChange={set('fabric')} />}</Field>
+                  <Field label="Fit">{(fid) => <input id={fid} value={form.fit} onChange={set('fit')} />}</Field>
+                  <Field label="Care">{(fid) => <input id={fid} value={form.care} onChange={set('care')} />}</Field>
+                </div>
+              </details>
+            ) : (
+              <>
+                <Field label="Key features" hint="One per line">
+                  {(fid) => <textarea id={fid} value={form.featuresText} onChange={set('featuresText')} rows={4} />}
+                </Field>
+                <div className="admin-row">
+                  <Field label="Fabric">{(fid) => <input id={fid} value={form.fabric} onChange={set('fabric')} />}</Field>
+                  <Field label="Fit">{(fid) => <input id={fid} value={form.fit} onChange={set('fit')} />}</Field>
+                  <Field label="Care">{(fid) => <input id={fid} value={form.care} onChange={set('care')} />}</Field>
+                </div>
+              </>
+            )}
           </section>
 
           <section className="admin-card">
-            <h2>Images &amp; gallery</h2>
+            <h2>{isNew ? 'Photos' : 'Images & gallery'}</h2>
             <p className="admin-muted" style={{ marginTop: 0 }}>
-              The first image is the card and listing thumbnail. JPG, PNG or WebP, up to 8 MB.
+              {isNew ? 'The first photo is the cover. JPG, PNG or WebP, up to 8 MB.' : 'The first image is the card and listing thumbnail. JPG, PNG or WebP, up to 8 MB.'}
             </p>
             <div className="admin-gallery" style={{ marginBottom: '0.75rem' }}>
               {images.map((img, i) => (
@@ -405,19 +485,60 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
           </section>
 
           <section className="admin-card">
-            <h2>SKU, variants &amp; inventory</h2>
+            <h2>{isNew ? 'Sizes' : 'SKU, variants & inventory'}</h2>
             {isNew ? (
               <>
                 <p className="admin-muted" style={{ marginTop: 0 }}>
-                  Optional first variant. Add more after creating the product.
+                  A SKU is created for XS–XL from the product name. Each size starts at 10. Change the stock if you need a different count.
                 </p>
-                <div className="admin-row">
-                  {['sku', 'size', 'colourName', 'stockQty'].map((key) => (
-                    <Field key={key} label={key === 'colourName' ? 'Colour' : key === 'stockQty' ? 'Stock' : key.toUpperCase()}>
-                      {(fid) => <input id={fid} value={variant[key]} onChange={(e) => setVariant((v) => ({ ...v, [key]: e.target.value }))} />}
-                    </Field>
-                  ))}
+                <Field label="Colour">
+                  {(fid) => (
+                    <input
+                      id={fid}
+                      value={draftVariants[0]?.colourName || ''}
+                      onChange={(e) => {
+                        const colourName = e.target.value;
+                        setDraftVariants((rows) => rows.map((item) => ({ ...item, colourName })));
+                      }}
+                    />
+                  )}
+                </Field>
+                <div className="create-sizes-head" aria-hidden>
+                  <span>Size</span>
+                  <span>SKU</span>
+                  <span>Stock</span>
                 </div>
+                <ul className="create-sizes">
+                  {draftVariants.map((row, index) => {
+                    const sku = row.skuTouched ? row.sku : skuFor(form.name, row.size);
+                    return (
+                      <li key={row.size}>
+                        <span className="create-size">{row.size}</span>
+                        <input
+                          className="admin-mono"
+                          aria-label={`SKU for ${row.size}`}
+                          value={sku}
+                          placeholder="From the name"
+                          onChange={(e) =>
+                            setDraftVariants((rows) =>
+                              rows.map((item, i) => (i === index ? { ...item, sku: e.target.value, skuTouched: true } : item)),
+                            )
+                          }
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          aria-label={`Stock for ${row.size}`}
+                          value={row.stockQty}
+                          onChange={(e) =>
+                            setDraftVariants((rows) => rows.map((item, i) => (i === index ? { ...item, stockQty: e.target.value } : item)))
+                          }
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
               </>
             ) : (
               <>
@@ -474,19 +595,21 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
             )}
           </section>
 
-          <section className="admin-card">
-            <h2>SEO</h2>
-            <Field label="URL slug" error={errors.slug} hint={isNew ? 'Leave empty to generate from name and title' : 'Changing this breaks existing links'}>
-              {(fid) => <input id={fid} value={form.slug} onChange={set('slug')} />}
-            </Field>
-            <Field label="SEO title" hint={`${form.seoTitle.length}/160`}>
-              {(fid) => <input id={fid} value={form.seoTitle} onChange={set('seoTitle')} maxLength={160} />}
-            </Field>
-            <Field label="SEO description" error={errors.seoDescription} hint={`${form.seoDescription.length}/320`}>
-              {(fid) => <textarea id={fid} value={form.seoDescription} onChange={set('seoDescription')} rows={3} />}
-            </Field>
-            <Field label="Keywords">{(fid) => <input id={fid} value={form.seoKeywords} onChange={set('seoKeywords')} />}</Field>
-          </section>
+          {!isNew ? (
+            <section className="admin-card">
+              <h2>SEO</h2>
+              <Field label="URL slug" error={errors.slug} hint="Changing this breaks existing links">
+                {(fid) => <input id={fid} value={form.slug} onChange={set('slug')} />}
+              </Field>
+              <Field label="SEO title" hint={`${form.seoTitle.length}/160`}>
+                {(fid) => <input id={fid} value={form.seoTitle} onChange={set('seoTitle')} maxLength={160} />}
+              </Field>
+              <Field label="SEO description" error={errors.seoDescription} hint={`${form.seoDescription.length}/320`}>
+                {(fid) => <textarea id={fid} value={form.seoDescription} onChange={set('seoDescription')} rows={3} />}
+              </Field>
+              <Field label="Keywords">{(fid) => <input id={fid} value={form.seoKeywords} onChange={set('seoKeywords')} />}</Field>
+            </section>
+          ) : null}
         </div>
 
         <div className="admin-stack">
@@ -512,6 +635,28 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
             </label>
           </section>
 
+          {isNew ? (
+            <details className="admin-fold">
+              <summary>
+                SEO
+                <span className="admin-muted" style={{ fontFamily: 'inherit', fontWeight: 500, fontSize: 12 }}>
+                  {form.slug || 'Fills from the name'}
+                </span>
+              </summary>
+              <Field label="URL slug" error={errors.slug} hint="Filled from the name and title. Edit it to keep your own.">
+                {(fid) => <input id={fid} value={form.slug} onChange={set('slug')} />}
+              </Field>
+              <Field label="SEO title" hint={`${form.seoTitle.length}/160`}>
+                {(fid) => <input id={fid} value={form.seoTitle} onChange={set('seoTitle')} maxLength={160} />}
+              </Field>
+              <Field label="SEO description" error={errors.seoDescription} hint={`${form.seoDescription.length}/320 · filled from the description and details`}>
+                {(fid) => <textarea id={fid} value={form.seoDescription} onChange={set('seoDescription')} rows={3} />}
+              </Field>
+              <Field label="Keywords">{(fid) => <input id={fid} value={form.seoKeywords} onChange={set('seoKeywords')} />}</Field>
+            </details>
+          ) : null}
+
+          {!isNew ? (
           <section className="admin-card">
             <h2>Pricing</h2>
             <div className="admin-row">
@@ -523,6 +668,7 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
               </Field>
             </div>
           </section>
+          ) : null}
 
           <section className="admin-card">
             <h2>Categories</h2>

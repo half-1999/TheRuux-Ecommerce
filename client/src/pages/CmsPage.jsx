@@ -5,6 +5,7 @@ import { mood } from '../lib/media';
 import { Button, Input } from '../components/ui';
 import { useState } from 'react';
 import { useToastStore } from '../store/toastStore';
+import { SizeGuide } from '../components/size/SizeGuide';
 
 const SLUG_MAP = {
   'size-guide': 'size-guide',
@@ -31,6 +32,7 @@ export function CmsPage({ slug: slugProp, title: titleProp }) {
   const title = data?.title || titleProp || raw?.replace(/-/g, ' ');
   const body = data?.body;
   const hasBanner = apiSlug === 'about-us' || apiSlug === 'our-story';
+  const isSizeGuide = apiSlug === 'size-guide';
 
   return (
     <div className="min-h-[70svh]">
@@ -46,7 +48,7 @@ export function CmsPage({ slug: slugProp, title: titleProp }) {
           </div>
         </section>
       )}
-      <div className={`mx-auto max-w-[var(--container-narrow)] px-[var(--space-header-x)] pb-24 ${hasBanner ? 'pt-12 md:pt-16' : 'pt-50'}`}>
+      <div className={`mx-auto px-[var(--space-header-x)] pb-24 ${isSizeGuide ? 'max-w-[var(--container)]' : 'max-w-[var(--container-narrow)]'} ${hasBanner ? 'pt-12 md:pt-16' : 'pt-50'}`}>
         {!hasBanner ? (
           <>
             <nav className="text-xs uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
@@ -57,16 +59,15 @@ export function CmsPage({ slug: slugProp, title: titleProp }) {
             <h1 className="mt-4 text-3xl font-semibold md:text-4xl">{title}</h1>
           </>
         ) : null}
-        {isLoading ? (
+        {isSizeGuide ? (
+          <SizeGuide />
+        ) : isLoading ? (
           <p className="mt-8 text-[var(--color-text-muted)]">Loading…</p>
         ) : (
           <div className="mt-8 whitespace-pre-wrap text-base leading-relaxed text-[var(--color-text-muted)]">
             {body || 'Content coming soon.'}
           </div>
         )}
-        {apiSlug === 'size-guide' ? (
-          <p className="mt-8 font-semibold tracking-wide">DON&apos;T GUESS YOUR SIZE.</p>
-        ) : null}
       </div>
     </div>
   );

@@ -225,7 +225,7 @@ export function Header() {
               alt="TheRuux"
               className={[
                 'h-10',
-                'w-auto  object-contain',
+                'w-auto object-contain',
                 'transition-[filter] duration-[var(--dur-mid)]',
                 inverted ? 'brightness-0 invert' : '',
               ].join(' ')}

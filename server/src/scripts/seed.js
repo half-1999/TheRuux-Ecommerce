@@ -59,21 +59,7 @@ We are still early. The attitude is not.`,
     title: 'Size Guide',
     body: `DON'T GUESS YOUR SIZE.
 
-Unisex tops (chest, inches)
-S  38–40
-M  40–42
-L  42–44
-XL 44–46
-
-Unisex bottoms (waist, inches)
-S  28–30
-M  30–32
-L  32–34
-XL 34–36
-
-Most TheRuux tops are intentionally oversized. If you prefer a closer fit, size down. If you are between sizes for the oversized look, size up.
-
-Model references are listed on each product page. Still unsure? Write us via Contact — we answer fit questions.`,
+Garment measurements in inches. The storefront size guide shows the chart and the fit dummy.`,
   },
   {
     slug: 'shipping-delivery',

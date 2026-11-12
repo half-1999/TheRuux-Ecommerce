@@ -52,7 +52,7 @@ export function NewArrivalsSection({ products, loading, copy }) {
         </CmsLink>
       </div>
       <div data-arrive>
-        <ProductGrid products={products?.slice(0, 4)} loading={loading} actions={false} />
+        <ProductGrid products={products?.slice(0, 4)} loading={loading} />
       </div>
     </section>
   );

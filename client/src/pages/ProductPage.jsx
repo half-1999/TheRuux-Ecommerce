@@ -148,7 +148,7 @@ export function ProductPage() {
 
       <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
         <div className="lg:sticky lg:top-[var(--header-height)] lg:self-start">
-          <div className="aspect-[3/4] overflow-hidden bg-[var(--color-bg-muted)]">
+          <div className="relative aspect-[3/4] overflow-hidden bg-[var(--color-bg-muted)]">
             {images[activeImage] ? (
               <img
                 src={images[activeImage].url}
@@ -156,6 +156,18 @@ export function ProductPage() {
                 className="h-full w-full object-cover"
               />
             ) : null}
+            <button
+              type="button"
+              aria-label={wishActive ? 'Saved to wishlist' : 'Wishlist'}
+              aria-pressed={wishActive}
+              className="wish-heart absolute top-3 right-3 z-10 inline-flex cursor-pointer bg-transparent drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)] transition-transform duration-150 active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              onClick={() => toggleWish.mutate({ productId: product.id, isActive: wishActive, product })}
+            >
+              <span className="relative inline-flex">
+                <Heart size={34} weight="regular" className="wish-heart-outline" aria-hidden />
+                <Heart size={34} weight="fill" className="wish-heart-fill absolute inset-0" aria-hidden />
+              </span>
+            </button>
           </div>
           {images.length > 1 ? (
             <div className="mt-3 flex shrink-0 gap-2 overflow-x-auto">
@@ -176,31 +188,9 @@ export function ProductPage() {
         </div>
 
         <div>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-semibold tracking-wide">{product.name}</h1>
-              <p className="mt-1 text-[var(--color-text-muted)]">{product.title}</p>
-            </div>
-            <button
-              type="button"
-              aria-label={wishActive ? 'Saved to wishlist' : 'Wishlist'}
-              aria-pressed={wishActive}
-              className={`inline-flex h-11 items-center gap-2 px-2 ${
-                wishActive ? 'text-[#1c4332]' : ''
-              }`}
-              onClick={() => toggleWish.mutate({ productId: product.id, isActive: wishActive, product })}
-            >
-              <Heart
-                size={22}
-                weight={wishActive ? 'fill' : 'light'}
-                className={wishActive ? 'text-[#1c4332]' : ''}
-              />
-              {wishActive ? (
-                <span className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)]">
-                  Saved
-                </span>
-              ) : null}
-            </button>
+          <div>
+            <h1 className="text-3xl font-semibold tracking-wide">{product.name}</h1>
+            <p className="mt-1 text-[var(--color-text-muted)]">{product.title}</p>
           </div>
           <p className="mt-4 text-lg font-medium">{formatInr(product.price)}</p>
           <p className="mt-2 text-sm font-medium">
@@ -362,10 +352,8 @@ export function ProductPage() {
               ['Details', product.details],
               ['Fabric & materials', product.fabric],
               ['Fit', product.fit],
-              ['Size guide', product.sizeGuide],
               ['Care', product.care || 'COLD WASH. LOW DRAMA.'],
               ['Shipping & Returns', product.shippingNote],
-              ['Model Info', product.modelInfo],
             ]
               .filter(([, body]) => body)
               .map(([label, body]) => (

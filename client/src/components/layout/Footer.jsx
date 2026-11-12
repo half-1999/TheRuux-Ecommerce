@@ -45,10 +45,7 @@ export function Footer() {
         <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <img src="/brand/logo.png" alt="TheRuux" className="h-10 w-auto object-contain" />
-            <p
-              className="mt-4 font-[family-name:var(--font-script)] text-5xl leading-[1.2] text-[var(--color-brand)] md:text-6xl"
-              aria-label="Beyond Boundaries"
-            >
+            <p className="mt-1 font-[family-name:var(--font-script)] text-[clamp(1.45rem,2.4vw,2.15rem)] leading-[1.2] text-[var(--color-brand)]">
               Beyond Boundaries.
             </p>
           </div>
