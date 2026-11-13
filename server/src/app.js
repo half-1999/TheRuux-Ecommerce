@@ -51,6 +51,8 @@ export const createApp = () => {
   const allowedOrigins = new Set([
     ...env.clientUrls.map((url) => new URL(url).origin),
     'https://the-ruux-ecommerce.vercel.app',
+    'https://theruux.in',
+    'https://www.theruux.in',
     'http://localhost:5173',
     'http://localhost:5174',
     'http://127.0.0.1:5173',
@@ -86,10 +88,12 @@ export const createApp = () => {
         const workersPreview = /^https:\/\/([a-z0-9-]+\.)?theruuxofficial\.workers\.dev$/.test(
           normalized,
         );
+        const theruuxSite = /^https:\/\/(www\.)?theruux\.in$/.test(normalized);
         if (
           allowedOrigins.has(normalized) ||
           vercelPreview ||
           workersPreview ||
+          theruuxSite ||
           isLocalDevOrigin(normalized)
         ) {
           return callback(null, true);
