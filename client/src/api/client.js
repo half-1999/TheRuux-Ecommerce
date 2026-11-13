@@ -1,6 +1,15 @@
 import { useAuthStore } from '../store/authStore';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const PRODUCTION_API = 'https://theruux-ecommerce.onrender.com/api';
+
+const resolveApiUrl = () => {
+  const configured = String(import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+  if (configured && configured !== '/api') return configured;
+  if (import.meta.env.PROD) return PRODUCTION_API;
+  return '/api';
+};
+
+const API_URL = resolveApiUrl();
 const GUEST_KEY = 'theruux_guest';
 const SKIP_REFRESH = new Set(['/auth/refresh', '/auth/login', '/auth/register']);
 

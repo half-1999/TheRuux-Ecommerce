@@ -78,8 +78,8 @@
   --container: 1440px;
   --container-narrow: 720px;
   --gutter: clamp(1rem, 3vw, 2rem);
-  --header-height: 9rem;
-  --header-offset: 10.5rem;
+  --header-height: 4rem;
+  --header-offset: 4.75rem;
 
   /* Z-index */
   --z-base: 0;
@@ -101,7 +101,7 @@
 
 @media (min-width: 768px) {
   :root {
-    --header-height: 13rem;
-    --header-offset: 14.75rem;
+    --header-height: 4.25rem;
+    --header-offset: 5rem;
   }
 }

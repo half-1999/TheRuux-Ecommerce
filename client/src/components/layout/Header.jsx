@@ -180,7 +180,7 @@ export function Header() {
           'fixed inset-x-0 top-0 z-[var(--z-header)]',
           'transition-[background-color,color,backdrop-filter,border-color]',
           'duration-[var(--dur-mid)] ease-[var(--ease-editorial)]',
-          'h-25',
+          'h-[var(--header-height)]',
           scrolled || !isHome
             ? 'border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-bg)_92%,transparent)] text-[var(--color-text)] backdrop-blur-md'
             : 'border-b border-transparent bg-transparent text-[var(--color-text-inverse)]',

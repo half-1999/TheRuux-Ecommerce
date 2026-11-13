@@ -83,7 +83,15 @@ export const createApp = () => {
         const vercelPreview = /^https:\/\/the-ruux-ecommerce(?:-[a-z0-9-]+)?\.vercel\.app$/.test(
           normalized,
         );
-        if (allowedOrigins.has(normalized) || vercelPreview || isLocalDevOrigin(normalized)) {
+        const workersPreview = /^https:\/\/([a-z0-9-]+\.)?theruuxofficial\.workers\.dev$/.test(
+          normalized,
+        );
+        if (
+          allowedOrigins.has(normalized) ||
+          vercelPreview ||
+          workersPreview ||
+          isLocalDevOrigin(normalized)
+        ) {
           return callback(null, true);
         }
         console.warn(`[cors] blocked origin: ${origin}`);

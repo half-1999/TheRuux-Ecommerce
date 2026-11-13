@@ -41,8 +41,8 @@ const FOOTER_COLUMNS = [
 export function Footer() {
   return (
     <footer className="mt-auto border-t border-[var(--color-border)] bg-[var(--color-bg)]">
-      <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] py-[var(--space-section-y)]">
-        <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] py-8 md:py-10">
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <img src="/brand/logo.png" alt="TheRuux" className="h-10 w-auto object-contain" />
             <p className="mt-1 font-[family-name:var(--font-script)] text-[clamp(1.45rem,2.4vw,2.15rem)] leading-[1.2] text-[var(--color-brand)]">
@@ -111,7 +111,7 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col gap-3 border-t border-[var(--color-border)] pt-6 text-xs text-[var(--color-text-subtle)] md:flex-row md:items-center md:justify-between">
+        <div className="mt-8 flex flex-col gap-3 border-t border-[var(--color-border)] pt-4 text-xs text-[var(--color-text-subtle)] md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
             <p>© {new Date().getFullYear()} TheRuux. All rights reserved.</p>
             <div className="flex gap-4">
