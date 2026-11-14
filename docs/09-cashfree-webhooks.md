@@ -65,7 +65,9 @@ PUBLIC_API_URL=https://theruux-ecommerce-jbpe.onrender.com
 ```
 
 2. Save and wait for the redeploy. `GET https://theruux-ecommerce-jbpe.onrender.com/api/health` should show `"cashfree": true`.
-3. Open the sandbox dashboard → Payment Gateway → Developers → Webhooks → Add endpoint.
+3. Open the sandbox dashboard → **Payment Gateway** → Developers → Webhooks → Add Webhook Endpoint.
+
+   The screen titled “Add Webhook” with a version dropdown of **V2** and the button **Test & Add Webhook** is Payouts, not checkout. That test sends a `LOW_BALANCE_ALERT` payout event. This API answers 400 because it is not a customer payment. Leave that screen. Customer payments are only under Payment Gateway.
 4. Endpoint URL:
 
 ```text
@@ -130,7 +132,8 @@ Use this only when you want webhooks on your own machine. The deployed URL above
 
 | What you see | Cause |
 | --- | --- |
-| 400 `INVALID_SIGNATURE` | The secret on the server is for the other environment, or the body was parsed as JSON before the signature check. The route is already mounted with the raw body. |
+| 400 or 404 `Route not found` | The request did not hit the webhook. Paste the full URL, including `https://`. `theruux-ecommerce-jbpe.onrender.com/api/payments/webhook` without the scheme, or a URL with `/api` twice, never reaches this route. |
+| 400 `INVALID_SIGNATURE` | The URL is correct. The call had no signature, or it was signed with the other environment’s secret. A signed test from the matching dashboard returns 200. |
 | 404 on the webhook URL | Render is serving an older build, or `PUBLIC_API_URL` includes `/api` or a trailing path. |
 | 200 and the order stays unpaid | Cashfree’s own order fetch was not paid yet. The success page in the browser is ignored. |
 | No row in the Cashfree webhook log | The endpoint was saved in the other dashboard, or `PUBLIC_API_URL` was still localhost when the order was created. New orders pick up the URL at checkout time. |

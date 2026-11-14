@@ -135,7 +135,16 @@ export const createApp = () => {
     next();
   });
 
-  // Cashfree webhook — raw body for signature verification
+  // Cashfree delivers payments with POST. A browser open is GET, which otherwise 404s.
+  const webhookReady = (_req, res) => {
+    res.json({
+      ok: true,
+      service: 'theruux-webhook',
+      message: 'Cashfree must POST to this URL. Opening it in a browser does not send a payment.',
+    });
+  };
+  app.get('/api/payments/webhook', webhookReady);
+  app.head('/api/payments/webhook', webhookReady);
   app.post(
     '/api/payments/webhook',
     express.raw({ type: 'application/json' }),
