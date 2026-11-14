@@ -70,10 +70,13 @@ export const useAuthStore = create(
       version: 2,
       migrate: (persisted) => ({ user: persisted?.user || null }),
       partialize: (state) => ({ user: state.user }),
+      // This runs inside create(), before useAuthStore exists. Reading it here throws and /admin stays blank.
       onRehydrateStorage: () => () => {
-        const { user, refresh, clearSession } = useAuthStore.getState();
-        if (!user) return;
-        refresh().catch(() => clearSession());
+        queueMicrotask(() => {
+          const { user, refresh, clearSession } = useAuthStore.getState();
+          if (!user) return;
+          refresh().catch(() => clearSession());
+        });
       },
     },
   ),

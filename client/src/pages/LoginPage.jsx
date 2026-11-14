@@ -31,45 +31,47 @@ export function LoginPage() {
   };
 
   return (
-    <div className="mx-auto max-w-md px-[var(--space-header-x)] pt-56 h-screen">
-      <h1 className="text-3xl font-semibold">Sign in</h1>
-      {next.startsWith('/checkout') ? (
-        <p className="mt-3 text-sm text-[var(--color-text-muted)]">Sign in to continue to checkout.</p>
-      ) : null}
-      <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-        New here?{' '}
-        <Link to="/auth/register" state={location.state} className="underline underline-offset-4">
-          Create an account
-        </Link>
-      </p>
-      <form onSubmit={onSubmit} className="mt-10 space-y-6">
-        <Input
-          label="Email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <Input
-          label="Password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        {error ? (
-          <p className="text-sm text-[var(--color-danger)]" role="alert">
-            {error}
-          </p>
+    <div className="mx-auto w-full max-w-md px-[var(--space-header-x)] pb-16 pt-50 h-screen flex items-center justify-center">
+      <div className="w-full max-w-md">
+        <h1 className="text-3xl font-semibold">Sign in</h1>
+        {next.startsWith('/checkout') ? (
+          <p className="mt-3 text-sm text-[var(--color-text-muted)]">Sign in to continue to checkout.</p>
         ) : null}
-        <Button type="submit" loading={loading} className="w-full">
-          Sign in
-        </Button>
-      </form>
+        <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+          New here?{' '}
+          <Link to="/auth/register" state={location.state} className="underline underline-offset-4">
+            Create an account
+          </Link>
+        </p>
+        <form onSubmit={onSubmit} className="mt-10 space-y-6">
+          <Input
+            label="Email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input
+            label="Password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          {error ? (
+            <p className="text-sm text-[var(--color-danger)]" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <Button type="submit" loading={loading} className="w-full">
+            Sign in
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

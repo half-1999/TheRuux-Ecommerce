@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { LoginPage } from '../LoginPage';
 
 const LINKS = [
   { to: '/account', label: 'Overview', end: true },
@@ -26,28 +27,7 @@ export function AccountLayout() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="mx-auto max-w-md px-[var(--space-header-x)] pt-50 h-screen pb-24">
-        <h1 className="text-3xl font-semibold">Account</h1>
-        <p className="mt-3 text-[var(--color-text-muted)]">Sign in to view orders and details.</p>
-        <div className="mt-8 flex gap-3">
-          <Link
-            to="/auth/login"
-            className="inline-flex min-h-11 items-center px-5 text-sm text-[#000000] border border-[#5F6F64]/40 btn-hover active:scale-[0.98]"  
-          >
-            Sign in
-          </Link>
-          <Link
-            to="/auth/register"
-            className="inline-flex min-h-11 items-center px-5 text-sm text-[#000000] border border-[#5F6F64]/40 btn-hover active:scale-[0.98]"
-          >
-            Register
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (!user) return <LoginPage />;
 
   return (
     <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] pb-24 pt-50">
