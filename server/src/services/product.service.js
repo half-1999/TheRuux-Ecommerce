@@ -4,7 +4,7 @@ import { Category } from '../models/Category.js';
 import { Collection } from '../models/Collection.js';
 import { InstagramLink } from '../models/InstagramLink.js';
 import { AppError } from '../utils/errors.js';
-import { serializeProductListItem, serializeVariant, primaryImage } from '../utils/serializers.js';
+import { deliveryUrl, serializeProductListItem, serializeVariant, primaryImage } from '../utils/serializers.js';
 import { formatMoney } from '../utils/money.js';
 
 const ACTIVE = 'active';
@@ -162,7 +162,7 @@ export const getProductBySlug = async (slug) => {
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((img) => ({
         id: img._id.toString(),
-        url: img.url,
+        url: deliveryUrl(img.url),
         alt: img.alt,
         kind: img.kind,
       })),

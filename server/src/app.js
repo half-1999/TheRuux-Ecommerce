@@ -26,6 +26,7 @@ import checkoutRoutes from './routes/checkout.routes.js';
 import paymentsRoutes, { webhookHandler } from './routes/payments.routes.js';
 import { meRouter, ordersRouter } from './routes/me.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import seoRoutes from './routes/seo.routes.js';
 
 export const createApp = () => {
   const app = express();
@@ -37,7 +38,10 @@ export const createApp = () => {
       crossOriginEmbedderPolicy: false,
       crossOriginOpenerPolicy: false,
       originAgentCluster: false,
-      strictTransportSecurity: false,
+      strictTransportSecurity:
+        env.nodeEnv === 'production'
+          ? { maxAge: 15552000, includeSubDomains: true }
+          : false,
       crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
@@ -142,6 +146,16 @@ export const createApp = () => {
   app.use(cookieParser());
   app.use('/uploads', express.static(path.resolve('uploads')));
 
+  app.use(seoRoutes);
+
+  app.get('/', (_req, res) => {
+    res.json({
+      service: 'theruux-api',
+      message: 'TheRuux API is running.',
+      health: '/health',
+    });
+  });
+  app.use('/health', healthRoutes);
   app.use('/api/health', healthRoutes);
   app.use('/api/auth', authRoutes);
   app.use('/api/products', productsRoutes);

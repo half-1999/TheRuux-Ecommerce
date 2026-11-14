@@ -1,10 +1,16 @@
 import { formatMoney, toMoney } from '../utils/money.js';
 
+/** Ask Cloudinary for WebP or AVIF. Other hosts are left as stored. */
+export const deliveryUrl = (url) => {
+  if (!url || !url.includes('res.cloudinary.com') || url.includes('f_auto')) return url;
+  return url.replace('/upload/', '/upload/f_auto,q_auto/');
+};
+
 export const primaryImage = (product) => {
   if (!product?.images?.length) return null;
   const sorted = [...product.images].sort((a, b) => a.sortOrder - b.sortOrder);
   const img = sorted[0];
-  return { url: img.url, alt: img.alt || `${product.name} ${product.title}` };
+  return { url: deliveryUrl(img.url), alt: img.alt || `${product.name} ${product.title}` };
 };
 
 export const serializeProductListItem = (product) => ({

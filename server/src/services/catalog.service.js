@@ -9,6 +9,7 @@ import { Product } from '../models/Product.js';
 import { AppError } from '../utils/errors.js';
 import { getNewArrivals, getBestsellers } from './product.service.js';
 import { serializeProductListItem } from '../utils/serializers.js';
+import { STATIC_PAGES } from '../content/store-pages.js';
 
 export const listCategories = async () => {
   const cats = await Category.find({ isActive: true }).sort({ sortOrder: 1, name: 1 }).lean();
@@ -152,13 +153,17 @@ export const getHomepageInstagram = async () => {
 
 export const getPageBySlug = async (slug) => {
   const page = await Page.findOne({ slug, isPublished: true }).lean();
-  if (!page) throw new AppError(404, 'NOT_FOUND', 'Page not found');
-  return {
-    slug: page.slug,
-    title: page.title,
-    body: page.body,
-    seo: page.seo,
-  };
+  if (page) {
+    return {
+      slug: page.slug,
+      title: page.title,
+      body: page.body,
+      seo: page.seo,
+    };
+  }
+  const fallback = STATIC_PAGES[slug];
+  if (!fallback) throw new AppError(404, 'NOT_FOUND', 'Page not found');
+  return { ...fallback, seo: { title: `${fallback.title} | TheRuux`, description: '' } };
 };
 
 export const subscribeNewsletter = async (email) => {

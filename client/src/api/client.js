@@ -1,6 +1,6 @@
 import { useAuthStore } from '../store/authStore';
 
-const PRODUCTION_API = 'https://theruux-ecommerce.onrender.com/api';
+const PRODUCTION_API = 'https://theruux-ecommerce-jbpe.onrender.com/api';
 
 const resolveApiUrl = () => {
   const configured = String(import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
@@ -11,7 +11,7 @@ const resolveApiUrl = () => {
 
 const API_URL = resolveApiUrl();
 const GUEST_KEY = 'theruux_guest';
-const SKIP_REFRESH = new Set(['/auth/refresh', '/auth/login', '/auth/register']);
+const SKIP_REFRESH = new Set(['/auth/refresh', '/auth/login', '/auth/register', '/auth/mfa']);
 
 let refreshInFlight = null;
 
@@ -237,6 +237,9 @@ export const adminApi = {
   upsertPage: (slug, body) => api.patch(`/admin/pages/${slug}`, body),
   settings: () => api.get('/admin/settings'),
   patchSettings: (body) => api.patch('/admin/settings', body),
+  setupMfa: () => api.post('/admin/mfa/setup'),
+  confirmMfa: (code) => api.post('/admin/mfa/confirm', { code }),
+  disableMfa: (body) => api.post('/admin/mfa/disable', body),
   commerce: () => api.get('/admin/commerce'),
   createPayment: (body) => api.post('/admin/commerce/payments', body),
   updatePayment: (id, body) => api.patch(`/admin/commerce/payments/${id}`, body),

@@ -28,7 +28,7 @@ JWT_REFRESH_SECRET=<min 16 chars>
 JWT_ACCESS_EXPIRES=15m
 JWT_REFRESH_EXPIRES=7d
 CLIENT_URL=https://the-ruux-ecommerce.vercel.app
-PUBLIC_API_URL=https://<your-service>.onrender.com
+PUBLIC_API_URL=https://theruux-ecommerce-jbpe.onrender.com
 COOKIE_SECURE=true
 ```
 
@@ -42,7 +42,7 @@ npm run seed
 
 Without this step the catalog is empty on Atlas.
 
-5. Health check: `https://<your-service>.onrender.com/api/health`
+5. Health check: `https://theruux-ecommerce-jbpe.onrender.com/health`
 
 ---
 
@@ -62,7 +62,7 @@ Your screenshot used **Root Directory `./`** and Framework **Other**. For this r
 
 | Key | Value | Environments |
 | --- | --- | --- |
-| `VITE_API_URL` | `https://<your-render-service>.onrender.com/api` | Production + Preview |
+| `VITE_API_URL` | `https://theruux-ecommerce-jbpe.onrender.com/api` | Production + Preview |
 | `VITE_INSTAGRAM_URL` | `https://instagram.com/theruux` | Production |
 
 `VITE_*` vars are baked in at **build time** — set them before the first production build, or Redeploy after changing.

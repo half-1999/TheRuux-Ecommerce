@@ -20,6 +20,7 @@ import { Collection } from '../models/Collection.js';
 import { Page } from '../models/Page.js';
 import { AppError } from '../utils/errors.js';
 import { adminReadLogs } from '../utils/live-log.js';
+import { beginAdminMfa, confirmAdminMfa, disableAdminMfa } from '../services/auth.service.js';
 
 const router = Router();
 router.use(requireAuth, requireAdmin);
@@ -578,6 +579,34 @@ router.patch(
   validate(settingsSchema),
   asyncHandler(async (req, res) => {
     res.json(await admin.adminPatchSettings(req.body, req.user._id));
+  }),
+);
+
+router.post(
+  '/mfa/setup',
+  asyncHandler(async (req, res) => {
+    res.json(await beginAdminMfa(req.user._id));
+  }),
+);
+
+router.post(
+  '/mfa/confirm',
+  validate(z.object({ code: z.string().trim().regex(/^\d{6}$/) })),
+  asyncHandler(async (req, res) => {
+    res.json(await confirmAdminMfa(req.user._id, req.body.code));
+  }),
+);
+
+router.post(
+  '/mfa/disable',
+  validate(
+    z.object({
+      password: z.string().min(1).max(128),
+      code: z.string().trim().regex(/^\d{6}$/),
+    }),
+  ),
+  asyncHandler(async (req, res) => {
+    res.json(await disableAdminMfa(req.user._id, req.body));
   }),
 );
 

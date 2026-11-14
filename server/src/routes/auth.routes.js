@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { asyncHandler } from '../utils/errors.js';
 import {
   REFRESH_COOKIE,
+  completeMfaLogin,
   loginUser,
   logoutUser,
   refreshSession,
@@ -58,6 +59,29 @@ router.post(
   asyncHandler(async (req, res) => {
     const body = loginSchema.parse(req.body);
     const result = await loginUser(body);
+    if (result.mfaRequired) {
+      res.json({ mfaRequired: true, mfaToken: result.mfaToken });
+      return;
+    }
+    setRefreshCookie(res, result.refreshToken);
+    res.json({
+      user: result.user,
+      accessToken: result.accessToken,
+    });
+  }),
+);
+
+router.post(
+  '/mfa',
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const body = z
+      .object({
+        mfaToken: z.string().min(1),
+        code: z.string().trim().regex(/^\d{6}$/),
+      })
+      .parse(req.body);
+    const result = await completeMfaLogin(body);
     setRefreshCookie(res, result.refreshToken);
     res.json({
       user: result.user,

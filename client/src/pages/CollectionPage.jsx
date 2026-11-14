@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { catalogApi } from '../api/client';
 import { ProductGrid } from '../components/product/ProductGrid';
 import { mood } from '../lib/media';
+import { Seo } from '../components/seo/Seo';
 
 export function CollectionPage() {
   const { slug } = useParams();
@@ -13,6 +14,12 @@ export function CollectionPage() {
 
   return (
     <div>
+      <Seo
+        title={`${data?.seo?.title || data?.name || 'Collection'} | TheRuux`}
+        description={data?.seo?.description || data?.story || data?.tagline || 'A TheRuux collection.'}
+        path={`/collections/${slug}`}
+        image={data?.heroMediaUrl}
+      />
       <section className="relative min-h-[50vh] overflow-hidden bg-[var(--color-bg-inverse)] text-white">
         <img
           src={data?.heroMediaUrl || mood.udbhav}

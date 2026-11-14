@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { catalogApi } from '../api/client';
 import { ProductGrid } from '../components/product/ProductGrid';
+import { Seo } from '../components/seo/Seo';
 
 export function ShopPage({ mode = 'all' }) {
   const { category } = useParams();
@@ -33,8 +34,26 @@ export function ShopPage({ mode = 'all' }) {
           ? 'Bestsellers'
           : 'Shop All';
 
+  const path =
+    mode === 'category' && category
+      ? `/shop/${category}`
+      : mode === 'new'
+        ? '/new-arrivals'
+        : mode === 'bestsellers'
+          ? '/bestsellers'
+          : '/shop';
+
   return (
     <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] pt-50 pb-24">
+      <Seo
+        title={`${title} | TheRuux`}
+        description={
+          mode === 'category'
+            ? `Shop ${title} at TheRuux. Indian streetwear, listed by cut.`
+            : `${title} from TheRuux. Editorial streetwear, shipped across India.`
+        }
+        path={path}
+      />
       <nav className="text-xs uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
         <Link to="/" className="hover:text-[var(--color-text)]">
           Home

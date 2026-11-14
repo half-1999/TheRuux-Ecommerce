@@ -39,6 +39,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    totpEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    totpSecret: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    totpTempSecret: {
+      type: String,
+      default: null,
+      select: false,
+    },
   },
   { timestamps: true },
 );
@@ -50,6 +64,7 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     email: this.email,
     role: this.role,
     phone: this.phone ?? null,
+    totpEnabled: Boolean(this.totpEnabled),
   };
 };
 

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { asyncHandler } from '../utils/errors.js';
 import { optionalAuth } from '../middleware/auth.js';
@@ -11,6 +12,19 @@ import {
 } from '../services/payment.service.js';
 
 const router = Router();
+
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Too many payment checks. Try again later.',
+    },
+  },
+});
 
 // Webhook needs raw body — mounted separately in app.js with express.raw
 export const webhookHandler = asyncHandler(async (req, res) => {
@@ -26,6 +40,7 @@ export const webhookHandler = asyncHandler(async (req, res) => {
 
 router.post(
   '/abandon',
+  paymentLimiter,
   validate(z.object({ cashfreeOrderId: z.string().min(1) })),
   asyncHandler(async (req, res) => {
     const result = await abandonCashfreeCheckout(req.body);
@@ -43,6 +58,7 @@ router.post(
 
 router.post(
   '/confirm',
+  paymentLimiter,
   validate(
     z
       .object({

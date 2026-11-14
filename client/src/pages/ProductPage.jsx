@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Check, Heart } from '@phosphor-icons/react';
@@ -11,6 +11,27 @@ import { useBuyNowStore } from '../store/buyNowStore';
 import { ProductInstagram } from '../components/product/ProductInstagram';
 import { ProductGrid } from '../components/product/ProductGrid';
 import { useToastStore } from '../store/toastStore';
+import { Seo } from '../components/seo/Seo';
+import { SITE_URL } from '../lib/site';
+
+const PRODUCT_FAQS = [
+  {
+    q: 'How long do I have to return this?',
+    a: 'A return opens after the order is marked Delivered, and stays open for 3 days. The request needs a reason, and the piece should be unused with its original tags.',
+  },
+  {
+    q: 'Can I exchange the size?',
+    a: 'An exchange stays open for 7 days after delivery and needs a reason. One request per order.',
+  },
+  {
+    q: 'When can I cancel?',
+    a: 'You can cancel only while the order is still pending, and only within 2 hours of placing it.',
+  },
+  {
+    q: 'How does shipping work in India?',
+    a: 'Standard delivery is 3 to 5 business days. Express is 1 to 2 business days. The charge is shown at checkout.',
+  },
+];
 
 export function ProductPage() {
   const { slug } = useParams();
@@ -34,24 +55,6 @@ export function ProductPage() {
   const [size, setSize] = useState(null);
   const [colour, setColour] = useState(null);
   const [personalization, setPersonalization] = useState({ textFront: '', textBack: '' });
-
-  useEffect(() => {
-    if (!product) return;
-    document.title = product.seo?.title || `${product.name} — ${product.title} | TheRuux`;
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta && product.seo?.description) {
-      meta.setAttribute('content', product.seo.description);
-    }
-    if (product.seo?.keywords) {
-      let keywords = document.querySelector('meta[name="keywords"]');
-      if (!keywords) {
-        keywords = document.createElement('meta');
-        keywords.setAttribute('name', 'keywords');
-        document.head.appendChild(keywords);
-      }
-      keywords.setAttribute('content', product.seo.keywords);
-    }
-  }, [product]);
 
   const colours = useMemo(() => {
     if (!product?.variants) return [];
@@ -130,20 +133,72 @@ export function ProductPage() {
     return false;
   };
 
+  const category = product.categories?.[0];
+  const seoTitle = product.seo?.title?.trim() || `${product.name} — ${product.title} | TheRuux`;
+  const seoDescription =
+    product.seo?.description?.trim() ||
+    [product.description, product.fabric].filter(Boolean).join(' ').replace(/\s+/g, ' ').slice(0, 160);
+  const path = `/product/${product.slug}`;
+  const inStock = (product.variants || []).some((variant) => Number(variant.stockQty) > 0);
+  const crumbs = [
+    { name: 'Home', path: '/' },
+    { name: 'Shop', path: '/shop' },
+    ...(category ? [{ name: category.name, path: `/shop/${category.slug}` }] : []),
+    { name: `${product.name} ${product.title}`, path },
+  ];
+
   return (
     <div className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] pb-24 pt-50">
-      <nav className="mb-6 shrink-0 text-xs uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
-        <Link to="/">Home</Link>
-        <span className="mx-2">/</span>
-        {product.collections?.[0] ? (
-          <>
-            <Link to={`/collections/${product.collections[0].slug}`}>{product.collections[0].name}</Link>
-            <span className="mx-2">/</span>
-          </>
-        ) : null}
-        <span>{product.name}</span>
-        <span className="mx-2">/</span>
-        <span>{product.title}</span>
+      <Seo
+        title={seoTitle}
+        description={seoDescription}
+        path={path}
+        image={images[0]?.url}
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'Product',
+              name: `${product.name} ${product.title}`,
+              description: seoDescription,
+              image: images.map((img) => img.url).filter(Boolean),
+              sku: product.variants?.[0]?.sku,
+              brand: { '@type': 'Brand', name: 'TheRuux' },
+              offers: {
+                '@type': 'Offer',
+                url: `${SITE_URL}${path}`,
+                priceCurrency: 'INR',
+                price: product.price,
+                availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+              },
+            },
+            {
+              '@type': 'BreadcrumbList',
+              itemListElement: crumbs.map((crumb, index) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                name: crumb.name,
+                item: `${SITE_URL}${crumb.path}`,
+              })),
+            },
+            {
+              '@type': 'FAQPage',
+              mainEntity: PRODUCT_FAQS.map((item) => ({
+                '@type': 'Question',
+                name: item.q,
+                acceptedAnswer: { '@type': 'Answer', text: item.a },
+              })),
+            },
+          ],
+        }}
+      />
+      <nav className="mb-6 shrink-0 text-xs uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]" aria-label="Breadcrumb">
+        {crumbs.map((crumb, index) => (
+          <span key={crumb.path}>
+            {index > 0 ? <span className="mx-2">/</span> : null}
+            {index < crumbs.length - 1 ? <Link to={crumb.path}>{crumb.name}</Link> : <span>{crumb.name}</span>}
+          </span>
+        ))}
       </nav>
 
       <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
@@ -180,7 +235,7 @@ export function ProductPage() {
                     i === activeImage ? 'border-[var(--color-border-strong)]' : 'border-transparent'
                   }`}
                 >
-                  <img src={img.url} alt="" className="h-full w-full object-cover" />
+                  <img src={img.url} alt={img.alt || product.name} className="h-full w-full object-cover" />
                 </button>
               ))}
             </div>
@@ -378,6 +433,17 @@ export function ProductPage() {
 
         </div>
       </div>
+      <section className="mt-16 border-t border-[var(--color-border)] pt-10">
+        <h2 className="text-xl font-semibold">Questions</h2>
+        <div className="mt-4 space-y-3">
+          {PRODUCT_FAQS.map((item) => (
+            <details key={item.q} className="border-b border-[var(--color-border)] pb-3">
+              <summary className="min-h-11 cursor-pointer text-sm font-medium">{item.q}</summary>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-muted)]">{item.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
       {product.related?.length ? (
         <section className="mt-16 border-t border-[var(--color-border)] pt-12">
           <p className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">

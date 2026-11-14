@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { catalogApi } from '../api/client';
 import { mood } from '../lib/media';
 import { Button, Input } from '../components/ui';
 import { useState } from 'react';
 import { useToastStore } from '../store/toastStore';
 import { SizeGuide } from '../components/size/SizeGuide';
+import { Seo } from '../components/seo/Seo';
 
 const SLUG_MAP = {
   'size-guide': 'size-guide',
@@ -21,6 +22,7 @@ const SLUG_MAP = {
 
 export function CmsPage({ slug: slugProp, title: titleProp }) {
   const params = useParams();
+  const { pathname } = useLocation();
   const raw = slugProp || params.slug;
   const apiSlug = SLUG_MAP[raw] || raw;
   const { data, isLoading } = useQuery({
@@ -36,6 +38,11 @@ export function CmsPage({ slug: slugProp, title: titleProp }) {
 
   return (
     <div className="min-h-[70svh]">
+      <Seo
+        title={`${title} | TheRuux`}
+        description={(body || title).replace(/\s+/g, ' ').slice(0, 160)}
+        path={pathname}
+      />
       {hasBanner && (
         // Explicit height: the image is absolutely positioned, and the fixed header overlaps the top.
         <section className="relative isolate flex min-h-[58svh] items-end overflow-hidden bg-[var(--color-bg-inverse)] pt-[calc(var(--header-height)+1.5rem)] md:min-h-[68svh]">
@@ -80,8 +87,15 @@ export function ContactPage() {
 
   return (
     <div className="mx-auto min-h-[70svh] max-w-[var(--container-narrow)] px-[var(--space-header-x)] pt-50 pb-24">
-      <h1 className="text-3xl font-semibold">Contact</h1>
-      <p className="mt-2 text-sm text-[var(--color-text-muted)]">We read every note.</p>
+      <Seo
+        title="Contact Us | TheRuux"
+        description="Write to TheRuux about an order, a size, or a delivery in India. We read every note."
+        path="/contact"
+      />
+      <h1 className="text-3xl font-semibold">Contact Us</h1>
+      <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+        Orders, sizing, and delivery. We read every note sent from this form.
+      </p>
       <form
         className="mt-10 space-y-5"
         onSubmit={async (e) => {

@@ -36,6 +36,7 @@ const schema = z.object({
   JWT_REFRESH_EXPIRES: z.string().default('7d'),
   CLIENT_URL: clientUrlSchema.default('http://localhost:5173'),
   PUBLIC_API_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
+  SITE_URL: z.preprocess(emptyToUndefined, z.string().url().default('https://theruux.in')),
   COOKIE_SECURE: z
     .string()
     .optional()
@@ -79,6 +80,7 @@ export const env = {
   clientUrls: parsed.data.CLIENT_URL,
   clientUrl: parsed.data.CLIENT_URL[0],
   publicApiUrl: parsed.data.PUBLIC_API_URL || `http://localhost:${parsed.data.PORT}`,
+  siteUrl: parsed.data.SITE_URL.replace(/\/$/, ''),
   cookieSecure: parsed.data.COOKIE_SECURE ?? parsed.data.NODE_ENV === 'production',
   cashfreeAppId: parsed.data.CASHFREE_APP_ID,
   cashfreeSecretKey: parsed.data.CASHFREE_SECRET_KEY,

@@ -146,6 +146,7 @@ const createPaidOrder = async (session, { cashfreePaymentId, rawWebhook, idempot
 
   const result = await withTransaction(async (dbSession) => {
     let order = existing;
+    let claimedStock = false;
     if (!order) {
       try {
         const created = await Order.create(
@@ -175,6 +176,7 @@ const createPaidOrder = async (session, { cashfreePaymentId, rawWebhook, idempot
           opts(dbSession),
         );
         order = created[0];
+        claimedStock = true;
       } catch (err) {
         if (err?.code !== 11000) throw err;
         let again = Order.findOne({ orderNumber: session.orderNumber });
@@ -182,17 +184,34 @@ const createPaidOrder = async (session, { cashfreePaymentId, rawWebhook, idempot
         order = await again;
       }
     } else if (order.paymentStatus !== 'PAID') {
-      order.status = 'PAID';
-      order.paymentStatus = 'PAID';
-      order.paidAt = order.paidAt || new Date();
-      order.statusReason = '';
-      order.timeline.push({ status: 'PAID', note: 'Cashfree payment verified' });
-      await order.save(opts(dbSession));
+      const claimed = await Order.findOneAndUpdate(
+        { _id: order._id, paymentStatus: { $ne: 'PAID' } },
+        {
+          $set: {
+            status: 'PAID',
+            paymentStatus: 'PAID',
+            paidAt: order.paidAt || new Date(),
+            statusReason: '',
+          },
+          $push: { timeline: { status: 'PAID', note: 'Cashfree payment verified' } },
+        },
+        { new: true, ...opts(dbSession) },
+      );
+      if (claimed) {
+        order = claimed;
+        claimedStock = true;
+      } else {
+        let again = Order.findById(order._id);
+        if (dbSession) again = again.session(dbSession);
+        order = await again;
+      }
     }
 
     if (!order) throw new AppError(500, 'INTERNAL_ERROR', 'Could not save the order');
 
-    await reserveOrderStock(order, { session: dbSession, reason: 'payment_capture' });
+    if (claimedStock) {
+      await reserveOrderStock(order, { session: dbSession, reason: 'payment_capture' });
+    }
 
     let payment = await Payment.findOne({ cashfreeOrderId: session.cashfreeOrderId });
     if (!payment) {

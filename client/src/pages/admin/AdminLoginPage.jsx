@@ -5,11 +5,14 @@ import '../../styles/admin.css';
 
 export function AdminLoginPage() {
   const login = useAuthStore((s) => s.login);
+  const confirmMfa = useAuthStore((s) => s.confirmMfa);
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState('admin@theruux.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mfaToken, setMfaToken] = useState('');
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +29,21 @@ export function AdminLoginPage() {
           setError('');
           setLoading(true);
           try {
+            if (mfaToken) {
+              const data = await confirmMfa({ mfaToken, code });
+              if (data.user?.role !== 'admin') {
+                await useAuthStore.getState().logout();
+                setError('Admin access required');
+                return;
+              }
+              navigate(location.state?.from || '/admin', { replace: true });
+              return;
+            }
             const data = await login({ email, password });
+            if (data.mfaRequired) {
+              setMfaToken(data.mfaToken);
+              return;
+            }
             if (data.user?.role !== 'admin') {
               await useAuthStore.getState().logout();
               setError('Admin access required');
@@ -64,11 +81,27 @@ export function AdminLoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
+            disabled={Boolean(mfaToken)}
           />
         </div>
+        {mfaToken ? (
+          <div className="admin-field">
+            <label htmlFor="admin-mfa">Authenticator code</label>
+            <input
+              id="admin-mfa"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              required
+              pattern="\d{6}"
+              maxLength={6}
+            />
+          </div>
+        ) : null}
         {error ? <p className="admin-error">{error}</p> : null}
         <button type="submit" className="admin-btn admin-btn-primary" disabled={loading} style={{ width: '100%' }}>
-          {loading ? 'Signing in…' : 'Sign in'}
+          {loading ? 'Signing in…' : mfaToken ? 'Verify code' : 'Sign in'}
         </button>
       </form>
     </div>

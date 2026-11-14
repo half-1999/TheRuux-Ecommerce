@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { api, cartApi } from '../api/client';
 
+let refreshInFlight = null;
+
 export const useAuthStore = create(
   persist(
     (set, get) => ({
@@ -11,6 +13,7 @@ export const useAuthStore = create(
       clearSession: () => set({ user: null, accessToken: null }),
       login: async ({ email, password }) => {
         const data = await api.post('/auth/login', { email, password });
+        if (data.mfaRequired) return data;
         set({ user: data.user, accessToken: data.accessToken });
         try {
           await cartApi.merge();
@@ -37,18 +40,41 @@ export const useAuthStore = create(
           set({ user: null, accessToken: null });
         }
       },
-      refresh: async () => {
-        const data = await api.post('/auth/refresh');
+      confirmMfa: async ({ mfaToken, code }) => {
+        const data = await api.post('/auth/mfa', { mfaToken, code });
         set({ user: data.user, accessToken: data.accessToken });
+        try {
+          await cartApi.merge();
+        } catch {
+          /* guest merge optional */
+        }
         return data;
+      },
+      refresh: () => {
+        if (!refreshInFlight) {
+          refreshInFlight = api
+            .post('/auth/refresh')
+            .then((data) => {
+              set({ user: data.user, accessToken: data.accessToken });
+              return data;
+            })
+            .finally(() => {
+              refreshInFlight = null;
+            });
+        }
+        return refreshInFlight;
       },
     }),
     {
       name: 'theruux-auth',
-      partialize: (state) => ({
-        user: state.user,
-        accessToken: state.accessToken,
-      }),
+      version: 2,
+      migrate: (persisted) => ({ user: persisted?.user || null }),
+      partialize: (state) => ({ user: state.user }),
+      onRehydrateStorage: () => () => {
+        const { user, refresh, clearSession } = useAuthStore.getState();
+        if (!user) return;
+        refresh().catch(() => clearSession());
+      },
     },
   ),
 );

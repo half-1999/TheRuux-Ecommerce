@@ -10,3 +10,4 @@ uploads/
 .vite/
 client/dist/
 server/uploads/
+server/backups/

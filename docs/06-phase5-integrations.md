@@ -23,7 +23,7 @@ Online checkout uses [Cashfree PG](https://github.com/cashfree/cashfree-pg-sdk-n
 2. Set `PUBLIC_API_URL` to that public origin. Checkout sends it as `order_meta.notify_url`.
 3. In the [Cashfree sandbox dashboard](https://sandbox.cashfree.com/) → Developers → Webhooks, add:
 
-   - **URL:** `https://theruux-ecommerce.onrender.com/api/payments/webhook`
+   - **URL:** `https://theruux-ecommerce-jbpe.onrender.com/api/payments/webhook`
    - **Events:** Success Payment, Failed Payment, User Dropped Payment, Success Payment TDR, Payment Verification Update
 
 4. The route is mounted with `express.raw` **before** `express.json`.

@@ -12,6 +12,8 @@
     "seed:rebel": "node src/scripts/seed-rebel.js",
     "seed:udbhav": "node src/scripts/seed-udbhav.js",
     "seed:aman": "node src/scripts/seed-aman.js",
+    "backup": "node src/scripts/backup-db.js",
+    "restore": "node src/scripts/restore-db.js",
     "test:api": "node src/scripts/smoke-api.js",
     "test:admin": "node src/scripts/test-admin.js",
     "verify:phase2": "node src/scripts/verify-phase2.js"

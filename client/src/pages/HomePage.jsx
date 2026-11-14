@@ -11,6 +11,7 @@ import { BestsellersSection } from '../components/home/BestsellersSection';
 import { InstagramSection } from '../components/home/InstagramSection';
 import { NewsletterSection } from '../components/home/NewsletterSection';
 import { LeafField } from '../components/home/LeafField';
+import { Seo } from '../components/seo/Seo';
 
 /** Default order; CMS sortOrder overrides it. */
 const DEFAULT_ORDER = ['hero', 'new_arrivals', 'lookbook', 'udbhav', 'categories', 'bestsellers', 'instagram', 'newsletter'];
@@ -52,6 +53,11 @@ export function HomePage() {
 
   return (
     <>
+      <Seo
+        title="TheRuux — Beyond boundaries"
+        description="TheRuux is an Indian streetwear label. Shop the edit, from new arrivals to Udbhav, with delivery across India."
+        path="/"
+      />
       <LeafField />
       {keys.map((key) => (
         <Fragment key={key}>{render[key]()}</Fragment>

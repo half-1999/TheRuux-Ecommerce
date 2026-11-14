@@ -39,3 +39,51 @@ A return can be requested for 3 days after the order is marked Delivered. An exc
 Product imagery can vary slightly by screen. TheRuux names, graphics, and site design stay with the brand.
 
 Governing law: India.`;
+
+export const ABOUT_BODY = `TheRuux is an Indian streetwear label. The clothes are cut clean, then given a point of view: graphics, denim, embroidery, and the details you notice up close.
+
+We sell from theruux.in. Each piece is listed with its fabric, fit, and size run. What you see on the product page is what we ship.
+
+Questions about an order go through the contact form.`;
+
+export const STORY_BODY = `Udbhav is the collection about beginning again. Graphics, denim construction, embroidery, and experimental detailing, made to be worn, not just looked at.
+
+The rest of the line follows the same idea: a name with a meaning, a cut you can live in, and a finish that holds up.`;
+
+export const SHIPPING_BODY = `We ship across India.
+
+Standard delivery is 3 to 5 business days. Express is 1 to 2 business days. The choice and the charge are shown at checkout before you pay.
+
+Cash on delivery is collected when the order arrives. Online payment is taken by Cashfree, and the order is confirmed only after that payment is verified.
+
+A tracking note is added when the order is marked shipped. Delivery times can move during festivals or if the address needs a correction.`;
+
+export const FAQ_BODY = `Orders
+
+A cash-on-delivery order is placed when you confirm checkout. An online order is placed when Cashfree confirms the payment.
+
+Cancel
+
+You can cancel only while the order is still pending, and only within 2 hours of placing it. After that, write to us through Contact.
+
+Returns
+
+A return opens after the order is marked Delivered, and stays open for 3 days. The request needs a reason. The piece should be unused, with its original tags. We inspect it before a refund.
+
+Exchanges
+
+An exchange stays open for 7 days after delivery and also needs a reason. After the 3-day return window, an exchange can still be requested until day 7. One request per order.
+
+Shipping
+
+Standard is 3 to 5 business days inside India. Express is 1 to 2 business days.`;
+
+export const STATIC_PAGES = {
+  'about-us': { slug: 'about-us', title: 'About Us', body: ABOUT_BODY },
+  'our-story': { slug: 'our-story', title: 'Our Story', body: STORY_BODY },
+  'shipping-delivery': { slug: 'shipping-delivery', title: 'Shipping & Delivery', body: SHIPPING_BODY },
+  'returns-exchanges': { slug: 'returns-exchanges', title: 'Returns & Exchanges', body: RETURNS_BODY },
+  faqs: { slug: 'faqs', title: 'FAQs', body: FAQ_BODY },
+  privacy: { slug: 'privacy', title: 'Privacy Policy', body: PRIVACY_BODY },
+  terms: { slug: 'terms', title: 'Terms & Conditions', body: TERMS_BODY },
+};

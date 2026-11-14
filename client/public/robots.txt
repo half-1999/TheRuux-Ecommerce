@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /checkout
+Disallow: /auth
+Disallow: /order-confirmation
+
+Sitemap: https://theruux.in/sitemap.xml
