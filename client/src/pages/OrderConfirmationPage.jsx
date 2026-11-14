@@ -1,9 +1,11 @@
+import { useEffect } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { checkoutApi, ordersApi } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import { formatInr } from '../lib/media';
 import { orderStatusLabel } from '../lib/orderStatus';
+import { trackPurchase } from '../lib/analytics';
 
 const SHIPPING_LABEL = {
   standard: 'Standard · 3–5 business days',
@@ -60,6 +62,12 @@ export function OrderConfirmationPage() {
     enabled: Boolean(user && orderNumber),
     retry: false,
   });
+
+  useEffect(() => {
+    if (confirmed?.paymentStatus === 'PAID') {
+      trackPurchase(confirmed.orderNumber, confirmed.grandTotal);
+    }
+  }, [confirmed?.paymentStatus, confirmed?.orderNumber, confirmed?.grandTotal]);
 
   const order = data
     ? { ...snapshot, ...data, paymentMethod: data.paymentMethod || snapshot?.paymentMethod }

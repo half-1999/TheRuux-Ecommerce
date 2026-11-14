@@ -7,7 +7,10 @@ export const addressSchema = z.object({
   line2: z.string().trim().max(200).optional().default(''),
   city: z.string().trim().min(1).max(100),
   state: z.string().trim().min(1).max(100),
-  postalCode: z.string().trim().min(4).max(20),
+  postalCode: z
+    .string()
+    .trim()
+    .regex(/^[1-9]\d{5}$/, 'Enter a 6-digit Indian PIN code'),
   country: z.string().trim().length(2).default('IN'),
   label: z.string().trim().max(60).optional(),
   isDefault: z.boolean().optional(),

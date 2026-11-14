@@ -10,6 +10,7 @@ import { useCart } from '../hooks/useCart';
 import { useToastStore } from '../store/toastStore';
 import { useAuthStore } from '../store/authStore';
 import { useBuyNowStore } from '../store/buyNowStore';
+import { track, trackPurchase } from '../lib/analytics';
 
 function PaymentOutcome({ payment, checking }) {
   if (checking) return <p className="mt-4 text-sm">Checking payment…</p>;
@@ -255,9 +256,11 @@ export function CheckoutPage() {
         };
       }
 
+      track('begin_checkout', { currency: 'INR' });
       const result = await checkoutApi.create(payload);
 
       if (result.payment?.provider !== 'cashfree') {
+        trackPurchase(result.orderNumber, result.payment.amount);
         rememberOrder(result.orderNumber, false);
         clearBuyNow();
         qc.invalidateQueries({ queryKey: ['cart'] });
@@ -290,6 +293,7 @@ export function CheckoutPage() {
           cashfreeOrderId: result.payment.cashfreeOrderId,
         });
         if (settled.paymentStatus === 'PAID') {
+          trackPurchase(settled.orderNumber, settled.grandTotal || result.payment.amount);
           rememberOrder(settled.orderNumber, true);
           clearBuyNow();
           qc.invalidateQueries({ queryKey: ['cart'] });
@@ -319,6 +323,7 @@ export function CheckoutPage() {
         });
         return;
       }
+      trackPurchase(confirmed.orderNumber, confirmed.grandTotal || result.payment.amount);
       rememberOrder(confirmed.orderNumber, true);
       clearBuyNow();
       qc.invalidateQueries({ queryKey: ['cart'] });

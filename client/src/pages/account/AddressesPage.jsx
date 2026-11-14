@@ -21,7 +21,7 @@ const FIELDS = [
   { key: 'line2', label: 'Address line 2', required: false },
   { key: 'city', label: 'City', required: true },
   { key: 'state', label: 'State', required: true },
-  { key: 'postalCode', label: 'Zip code', required: true },
+  { key: 'postalCode', label: 'PIN code', required: true },
   { key: 'country', label: 'Country', required: true },
 ];
 
@@ -138,7 +138,8 @@ export function AddressesPage() {
                 value={form[field.key]}
                 onChange={(e) => setForm((current) => ({ ...current, [field.key]: e.target.value }))}
                 required={field.required}
-                maxLength={field.key === 'country' ? 2 : undefined}
+                maxLength={field.key === 'country' ? 2 : field.key === 'postalCode' ? 6 : undefined}
+                inputMode={field.key === 'postalCode' ? 'numeric' : undefined}
                 autoComplete={field.key === 'postalCode' ? 'postal-code' : 'on'}
               />
             ))}

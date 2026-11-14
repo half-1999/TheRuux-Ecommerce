@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Check, Heart } from '@phosphor-icons/react';
@@ -11,6 +11,7 @@ import { useBuyNowStore } from '../store/buyNowStore';
 import { ProductInstagram } from '../components/product/ProductInstagram';
 import { ProductGrid } from '../components/product/ProductGrid';
 import { useToastStore } from '../store/toastStore';
+import { track } from '../lib/analytics';
 import { Seo } from '../components/seo/Seo';
 import { SITE_URL } from '../lib/site';
 
@@ -55,6 +56,15 @@ export function ProductPage() {
   const [size, setSize] = useState(null);
   const [colour, setColour] = useState(null);
   const [personalization, setPersonalization] = useState({ textFront: '', textBack: '' });
+
+  useEffect(() => {
+    if (!product?.id) return;
+    track('view_item', {
+      currency: 'INR',
+      value: Number(product.price) || 0,
+      items: [{ item_id: product.id, item_name: product.name }],
+    });
+  }, [product?.id, product?.name, product?.price]);
 
   const colours = useMemo(() => {
     if (!product?.variants) return [];
@@ -361,6 +371,11 @@ export function ProductPage() {
               disabled={!selectedVariant?.available}
               onClick={() => {
                 if (!requireFrontText()) return;
+                track('add_to_cart', {
+                  currency: 'INR',
+                  value: Number(product.price) || 0,
+                  items: [{ item_id: product.id, item_name: product.name, quantity: 1 }],
+                });
                 add.mutate(addPayload());
               }}
             >

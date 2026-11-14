@@ -111,6 +111,9 @@ export const createCheckout = async ({
   if (!shipAddr?.line1) {
     throw new AppError(400, 'VALIDATION_ERROR', 'Shipping address required');
   }
+  if (!/^[1-9]\d{5}$/.test(String(shipAddr.postalCode || '').trim())) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'Enter a 6-digit Indian PIN code');
+  }
 
   const billAddr = billingAddress ? snapAddress(billingAddress) : shipAddr;
   const resolved = await resolveCheckoutMethods({ shippingMethodId, paymentMethod });
