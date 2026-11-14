@@ -19,6 +19,8 @@ Online checkout uses [Cashfree PG](https://github.com/cashfree/cashfree-pg-sdk-n
 
 ### Webhook
 
+The full test and production setup is in [09-cashfree-webhooks.md](09-cashfree-webhooks.md).
+
 1. Expose the API on a public HTTPS URL (ngrok, Cloudflare Tunnel, or the deployed host). `http://localhost` cannot receive Cashfree webhooks.
 2. Set `PUBLIC_API_URL` to that public origin. Checkout sends it as `order_meta.notify_url`.
 3. In the [Cashfree sandbox dashboard](https://sandbox.cashfree.com/) → Developers → Webhooks, add:
