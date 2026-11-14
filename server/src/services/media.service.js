@@ -2,12 +2,6 @@ import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { env } from '../config/env.js';
 import { AppError } from '../utils/errors.js';
-import path from 'path';
-import fs from 'fs';
-import crypto from 'crypto';
-
-const uploadDir = path.resolve('uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 if (env.cloudinaryEnabled) {
   cloudinary.config({
@@ -20,14 +14,39 @@ if (env.cloudinaryEnabled) {
 
 export const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 8 * 1024 * 1024 },
+  limits: { fileSize: 30 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      return cb(new AppError(400, 'VALIDATION_ERROR', 'Only images allowed'));
+    const video = file.mimetype === 'video/mp4' || file.mimetype === 'video/webm';
+    if (!file.mimetype.startsWith('image/') && !video) {
+      return cb(new AppError(400, 'VALIDATION_ERROR', 'Upload a JPG, PNG, WebP, MP4 or WebM file'));
     }
     return cb(null, true);
   },
 });
+
+const segment = (value, fallback = '') => {
+  const cleaned = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(cleaned) ? cleaned : fallback;
+};
+
+const masterFolder = () => segment(env.cloudinary.folder, 'theruux');
+
+/** theruux/{products|categories|collections|homepage}/{category-or-section} */
+export const resolveMediaFolder = (raw) => {
+  const master = masterFolder();
+  const scopes = new Set(['products', 'categories', 'collections', 'homepage']);
+  const parts = String(raw || '')
+    .split('/')
+    .map((part) => segment(part))
+    .filter((part) => part && part !== master);
+  const scope = scopes.has(parts[0]) ? parts.shift() : 'products';
+  if (scope === 'homepage') return `${master}/homepage/${parts[0] || 'general'}`;
+  return `${master}/${scope}/${parts[0] || 'uncategorized'}`;
+};
 
 /** Delivery URL with fashion-friendly crop defaults (3:4 packshot). */
 export const cloudinaryUrl = (publicId, { width = 900, height = 1200, crop = 'fill' } = {}) => {
@@ -44,52 +63,55 @@ export const uploadMedia = async (file, { folder, tags } = {}) => {
   if (!file) throw new AppError(400, 'VALIDATION_ERROR', 'File required');
 
   if (env.cloudinaryEnabled) {
+    const target = resolveMediaFolder(folder);
+    const isVideo = file.mimetype.startsWith('video/');
+    if (!isVideo && file.size > 8 * 1024 * 1024) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'Images must be under 8 MB');
+    }
     const result = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: folder || env.cloudinary.folder,
-          tags: tags || ['theruux'],
-          resource_type: 'image',
-          transformation: [{ quality: 'auto', fetch_format: 'auto' }],
-        },
-        (err, res) => (err ? reject(err) : resolve(res)),
-      );
+      const options = {
+        folder: target,
+        tags: tags || ['theruux', target.split('/').pop()],
+        resource_type: isVideo ? 'video' : 'image',
+        unique_filename: true,
+        overwrite: false,
+        use_filename: false,
+      };
+      // Store one size-capped image. Storefront crops are delivery URLs, not extra files.
+      if (!isVideo) options.transformation = [{ width: 2000, height: 2600, crop: 'limit', quality: 'auto:good' }];
+      const stream = cloudinary.uploader.upload_stream(options, (err, res) => (err ? reject(err) : resolve(res)));
       stream.end(file.buffer);
     });
 
+    const videoUrl = result.secure_url;
     return {
-      url: result.secure_url,
+      url: videoUrl,
       publicId: result.public_id,
       width: result.width,
       height: result.height,
       format: result.format,
       bytes: result.bytes,
-      // Optimized derivatives for storefront
-      urlPackshot: cloudinaryUrl(result.public_id, { width: 900, height: 1200 }),
-      urlThumb: cloudinaryUrl(result.public_id, { width: 240, height: 320 }),
+      urlPackshot: isVideo ? videoUrl : cloudinaryUrl(result.public_id, { width: 900, height: 1200 }),
+      urlThumb: isVideo ? videoUrl : cloudinaryUrl(result.public_id, { width: 240, height: 320 }),
       provider: 'cloudinary',
     };
   }
 
-  if (env.nodeEnv === 'production') {
-    throw new AppError(
-      503,
-      'MEDIA_UNAVAILABLE',
-      'Cloudinary is required in production. Set CLOUDINARY_* env vars.',
-    );
-  }
+  throw new AppError(
+    503,
+    'MEDIA_UNAVAILABLE',
+    'Cloudinary is required. Set CLOUDINARY_* env vars. Images are not saved on the server.',
+  );
+};
 
-  const ext = path.extname(file.originalname) || '.jpg';
-  const name = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`;
-  const dest = path.join(uploadDir, name);
-  fs.writeFileSync(dest, file.buffer);
-  return {
-    url: `/uploads/${name}`,
-    publicId: null,
-    width: null,
-    height: null,
-    provider: 'local',
-  };
+export const destroyMedia = async (publicId) => {
+  if (!env.cloudinaryEnabled || !publicId) return;
+  if (!String(publicId).startsWith(`${masterFolder()}/`)) return;
+  try {
+    await cloudinary.uploader.destroy(publicId, { resource_type: 'image', invalidate: true });
+  } catch (err) {
+    console.warn(`[cloudinary] could not delete ${publicId}: ${err.message}`);
+  }
 };
 
 export const getUploadSignature = (params = {}) => {
@@ -97,7 +119,7 @@ export const getUploadSignature = (params = {}) => {
     throw new AppError(503, 'MEDIA_UNAVAILABLE', 'Cloudinary not configured');
   }
   const timestamp = Math.round(Date.now() / 1000);
-  const folder = params.folder || env.cloudinary.folder;
+  const folder = resolveMediaFolder(params.folder);
   const signature = cloudinary.utils.api_sign_request(
     { timestamp, folder },
     env.cloudinary.apiSecret,

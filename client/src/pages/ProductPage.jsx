@@ -260,6 +260,12 @@ export function ProductPage() {
                 </button>
               ))}
             </div>
+            {product.modelInfo || product.sizeGuide ? (
+              <div className="mt-3 space-y-1 text-sm text-[var(--color-text-muted)]">
+                {product.modelInfo ? <p>{product.modelInfo}</p> : null}
+                {product.sizeGuide ? <p className="whitespace-pre-line">{product.sizeGuide}</p> : null}
+              </div>
+            ) : null}
             <p className="mt-3 text-sm text-[var(--color-text-muted)]">
               {selectedVariant
                 ? Number(selectedVariant.stockQty) > 0

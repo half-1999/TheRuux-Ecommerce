@@ -64,6 +64,11 @@ export const registerUser = async ({ name, email, password }) => {
   user.refreshTokenHash = hashToken(refreshToken);
   await user.save();
 
+  const { sendWelcome } = await import('./email.service.js');
+  sendWelcome({ name: user.name, email: user.email }).catch((err) =>
+    console.error('[auth] welcome email failed:', err.message),
+  );
+
   return { user: user.toSafeJSON(), accessToken, refreshToken };
 };
 

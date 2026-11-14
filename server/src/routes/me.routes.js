@@ -14,6 +14,8 @@ import {
   setDefaultAddress,
   listMyOrders,
   getMyOrder,
+  cancelMyOrder,
+  requestAftercare,
 } from '../services/me.service.js';
 
 export const meRouter = Router();
@@ -90,5 +92,25 @@ ordersRouter.get(
   '/:orderNumber',
   asyncHandler(async (req, res) => {
     res.json(await getMyOrder(req.user._id, req.params.orderNumber));
+  }),
+);
+
+ordersRouter.post(
+  '/:orderNumber/cancel',
+  asyncHandler(async (req, res) => {
+    res.json(await cancelMyOrder(req.user._id, req.params.orderNumber));
+  }),
+);
+
+ordersRouter.post(
+  '/:orderNumber/aftercare',
+  validate(
+    z.object({
+      type: z.enum(['return', 'exchange']),
+      reason: z.string().trim().min(8).max(500),
+    }),
+  ),
+  asyncHandler(async (req, res) => {
+    res.json(await requestAftercare(req.user._id, req.params.orderNumber, req.body));
   }),
 );

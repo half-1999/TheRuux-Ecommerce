@@ -18,11 +18,14 @@ export function ToastViewport() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-            className="pointer-events-auto border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-4 py-3 shadow-[var(--shadow-soft)]"
+            className={`tone-${toast.tone || 'info'} pointer-events-auto border border-[var(--color-border)] border-l-[3px] border-l-[var(--tone)] bg-[var(--color-bg-elevated)] px-4 py-3 shadow-[var(--shadow-soft)]`}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold tracking-[var(--tracking-caps)] uppercase">
+                <p className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--tone)]">
+                  {toast.tone === 'danger' ? 'Problem' : toast.tone === 'warn' ? 'Check this' : 'Done'}
+                </p>
+                <p className="mt-1 text-sm font-semibold tracking-[var(--tracking-caps)] uppercase">
                   {toast.title}
                 </p>
                 {toast.message ? (

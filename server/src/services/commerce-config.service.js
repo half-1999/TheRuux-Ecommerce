@@ -47,6 +47,15 @@ export const loadCommerceSettings = async () => {
     });
     dirty = true;
   }
+  if (!settings.paymentMethods.some((method) => method.id === 'cod')) {
+    settings.paymentMethods.push({
+      id: 'cod',
+      label: 'Cash on delivery',
+      detail: 'Pay with cash when the order arrives',
+      enabled: true,
+    });
+    dirty = true;
+  }
   if (!settings.shippingMethods?.length) {
     settings.shippingMethods = DEFAULT_SHIPPING.map((method) =>
       method.id === 'standard'

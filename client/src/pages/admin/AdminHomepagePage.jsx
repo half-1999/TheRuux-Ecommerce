@@ -1,28 +1,42 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi, catalogApi } from '../../api/client';
-import { Field, ImageField, Notice, PageHeader } from '../../components/admin/AdminUI';
+import { Field, ImageField, Notice, PageHeader, VideoField } from '../../components/admin/AdminUI';
 import { fmtDate } from '../../components/admin/adminFormat';
 
 const PAGE_SLUGS = ['about-us', 'our-story', 'size-guide', 'shipping-delivery', 'returns-exchanges', 'faqs', 'contact', 'privacy', 'terms'];
 
 /** Only the fields each storefront section actually renders. */
 const SECTION_SPEC = {
-  hero: { label: 'Hero', fields: ['title', 'subtitle', 'ctaLabel', 'ctaHref', 'media'], hints: { title: 'Large script headline' } },
-  new_arrivals: { label: 'New arrivals', fields: ['eyebrow', 'title', 'ctaLabel', 'ctaHref'] },
+  hero: {
+    label: 'Hero',
+    fields: ['title', 'subtitle', 'ctaLabel', 'ctaHref', 'media', 'gallery'],
+    hints: { title: 'Large script headline' },
+    galleryMax: 6,
+    galleryHint: 'Extra stills. Shown when the background is an image, and if a video fails to load.',
+  },
+  new_arrivals: { label: 'New arrivals', fields: ['eyebrow', 'title', 'ctaLabel', 'ctaHref'], note: 'The product row is the newest active products.' },
+  lookbook: {
+    label: 'Lookbook',
+    fields: ['eyebrow', 'title', 'gallery'],
+    galleryMax: 12,
+    altLabel: 'Label',
+    galleryHint: 'Each image is one tile. The label sits on the photo. The link is where the tile opens. Leave the list empty to keep the built-in looks.',
+  },
   udbhav: {
     label: 'Featured collection (Udbhav)',
-    fields: ['eyebrow', 'title', 'subtitle', 'body', 'ctaLabel', 'ctaHref', 'image'],
+    fields: ['eyebrow', 'title', 'subtitle', 'body', 'ctaLabel', 'ctaHref', 'media'],
     note: 'Empty fields fall back to the Udbhav collection’s own name, concept line, story and hero image.',
   },
-  categories: { label: 'Find your silhouette', fields: ['eyebrow', 'title', 'subtitle'], note: 'Tiles come from visible categories — manage them under Categories.' },
-  bestsellers: { label: 'Bestsellers', fields: ['eyebrow', 'title', 'ctaLabel', 'ctaHref', 'image'] },
+  categories: { label: 'Find your silhouette', fields: ['eyebrow', 'title', 'subtitle'], note: 'Tiles and their photos come from visible categories — manage them under Categories.' },
+  bestsellers: { label: 'Bestsellers', fields: ['eyebrow', 'title', 'ctaLabel', 'ctaHref', 'media'] },
   instagram: {
     label: 'The Ruux, out there',
-    fields: ['title', 'subtitle', 'ctaLabel', 'ctaHref', 'gallery'],
+    fields: ['eyebrow', 'title', 'subtitle', 'ctaLabel', 'ctaHref', 'gallery'],
     hints: { ctaHref: 'Instagram profile URL' },
+    galleryMax: 6,
   },
-  newsletter: { label: 'Newsletter', fields: ['title', 'body'] },
+  newsletter: { label: 'Newsletter', fields: ['title', 'body', 'ctaLabel'] },
 };
 
 const LABELS = {
@@ -81,7 +95,7 @@ export function AdminHomepagePage() {
       <PageHeader
         crumbs={[{ label: 'Homepage CMS' }]}
         title="Homepage CMS"
-        description="Edits are saved as drafts. The storefront only changes when you publish."
+        description="Every heading, image and video on the landing page is edited here. Save a draft, then publish. An empty field keeps the designed line."
         actions={
           <a className="admin-btn" href="/" target="_blank" rel="noreferrer">
             View homepage
@@ -92,7 +106,7 @@ export function AdminHomepagePage() {
       {isLoading ? <p className="admin-muted">Loading sections…</p> : null}
 
       {active ? (
-        <div className="admin-form-grid" style={{ gridTemplateColumns: 'minmax(200px, 260px) 1fr' }}>
+        <div className="admin-home-layout">
           <nav className="admin-card admin-stack" aria-label="Homepage sections">
             {sections.map((s) => {
               const [tone, label] = statusOf(s);
@@ -175,7 +189,7 @@ function SectionEditor({ section }) {
         <div>
           <h2 style={{ marginBottom: 4 }}>{spec.label}</h2>
           <p className="admin-muted" style={{ margin: 0 }}>
-            {section.publishedAt ? `Last published ${fmtDate(section.publishedAt)}.` : 'Never published — the storefront shows the built-in copy for this section.'}
+            {section.publishedAt ? `Last published ${fmtDate(section.publishedAt)}.` : 'Not published yet. Empty fields keep the designed line until you publish your own.'}
             {section.draft ? ' A draft is waiting.' : ''}
           </p>
         </div>
@@ -198,6 +212,8 @@ function SectionEditor({ section }) {
       </Notice>
       {spec.note ? <p className="admin-muted">{spec.note}</p> : null}
 
+      <div className="admin-home-edit">
+      <div>
       <div className="admin-row">
         <label className="admin-check">
           <input type="checkbox" checked={form.isActive} onChange={set('isActive')} /> Show this section
@@ -210,7 +226,7 @@ function SectionEditor({ section }) {
       {spec.fields.map((key) => {
         if (LABELS[key]) return text(key);
         if (key === 'image') {
-          return <ImageField key={key} label="Section image" value={form.mediaUrl} aspect="16 / 9" onChange={(url) => setForm((f) => ({ ...f, mediaUrl: url, mediaType: url ? 'image' : 'none' }))} />;
+          return <ImageField key={key} label="Section image" folder={`homepage/${section.key}`} value={form.mediaUrl} aspect="16 / 9" onChange={(url) => setForm((f) => ({ ...f, mediaUrl: url, mediaType: url ? 'image' : 'none' }))} />;
         }
         if (key === 'media') {
           return (
@@ -225,11 +241,9 @@ function SectionEditor({ section }) {
                 )}
               </Field>
               {form.mediaType === 'video' ? (
-                <Field label="Video URL" hint="MP4 path such as /hero/dresses.mp4 or an https:// link">
-                  {(fid) => <input id={fid} value={form.mediaUrl} onChange={set('mediaUrl')} />}
-                </Field>
+                <VideoField label="Video" folder={`homepage/${section.key}`} value={form.mediaUrl} onChange={(url) => setForm((f) => ({ ...f, mediaUrl: url, mediaType: 'video' }))} />
               ) : form.mediaType === 'image' ? (
-                <ImageField label="Hero image" value={form.mediaUrl} aspect="16 / 9" onChange={(url) => setForm((f) => ({ ...f, mediaUrl: url }))} />
+                <ImageField label="Section image" folder={`homepage/${section.key}`} value={form.mediaUrl} aspect="16 / 9" onChange={(url) => setForm((f) => ({ ...f, mediaUrl: url }))} />
               ) : null}
             </div>
           );
@@ -237,31 +251,43 @@ function SectionEditor({ section }) {
         if (key === 'gallery') {
           return (
             <div key={key} className="admin-field">
-              <label>Editorial images (up to 6)</label>
+              <label>{section.key === 'lookbook' ? 'Looks' : 'Images'} (up to {spec.galleryMax || 6})</label>
               {errors.gallery ? <span className="admin-field-error">{errors.gallery}</span> : null}
               <div className="admin-row">
                 {form.images.map((img, i) => (
                   <div key={i} className="admin-card admin-stack">
-                    <ImageField label={`Image ${i + 1}`} value={img.url} aspect="4 / 5" onChange={(url) => setImage(i, { url })} />
-                    <Field label="Alt text">{(fid) => <input id={fid} value={img.alt} maxLength={160} onChange={(e) => setImage(i, { alt: e.target.value })} />}</Field>
-                    <Field label="Post link">{(fid) => <input id={fid} value={img.href} placeholder="https://instagram.com/p/…" onChange={(e) => setImage(i, { href: e.target.value })} />}</Field>
+                    <ImageField label={`Image ${i + 1}`} folder={`homepage/${section.key}`} value={img.url} aspect="4 / 5" onChange={(url) => setImage(i, { url })} />
+                    <Field label={spec.altLabel || 'Alt text'}>{(fid) => <input id={fid} value={img.alt} maxLength={160} onChange={(e) => setImage(i, { alt: e.target.value })} />}</Field>
+                    <Field label={section.key === 'instagram' ? 'Post link' : 'Link'}>{(fid) => <input id={fid} value={img.href} placeholder={section.key === 'instagram' ? 'https://instagram.com/p/…' : '/collections/udbhav'} onChange={(e) => setImage(i, { href: e.target.value })} />}</Field>
                     <button type="button" className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => setForm((f) => ({ ...f, images: f.images.filter((_, x) => x !== i) }))}>
                       Remove
                     </button>
                   </div>
                 ))}
               </div>
-              {form.images.length < 6 ? (
+              {form.images.length < (spec.galleryMax || 6) ? (
                 <button type="button" className="admin-btn" onClick={() => setForm((f) => ({ ...f, images: [...f.images, { url: '', alt: '', href: '' }] }))}>
                   Add image
                 </button>
               ) : null}
-              <span className="admin-field-hint">Leave empty to use the brand lookbook images.</span>
+              <span className="admin-field-hint">{spec.galleryHint || 'Leave empty to use the built-in images.'}</span>
             </div>
           );
         }
         return null;
       })}
+      </div>
+      <aside className="admin-home-preview" aria-label="Section preview">
+        {form.mediaType === 'video' && form.mediaUrl ? <video src={form.mediaUrl} muted playsInline autoPlay loop /> : null}
+        {form.mediaType !== 'video' && (form.mediaUrl || form.images[0]?.url) ? <img src={form.mediaUrl || form.images[0].url} alt="" /> : null}
+        <div className="copy">
+          <p>{form.eyebrow || spec.label}</p>
+          <strong>{form.title || 'Heading'}</strong>
+          {form.subtitle ? <span>{form.subtitle}</span> : null}
+          {form.body ? <span>{form.body}</span> : null}
+        </div>
+      </aside>
+      </div>
     </section>
   );
 }

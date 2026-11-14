@@ -152,7 +152,7 @@ export function Dialog({ open, title, onClose, children, footer, wide }) {
 const MAX_UPLOAD = 8 * 1024 * 1024;
 
 /** Upload to the configured media store (Cloudinary or local) or paste a URL. */
-export function ImageField({ label = 'Image', value, onChange, aspect = '3 / 4', error }) {
+export function ImageField({ label = 'Image', value, onChange, aspect = '3 / 4', error, folder }) {
   const [busy, setBusy] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [broken, setBroken] = useState(false);
@@ -165,7 +165,7 @@ export function ImageField({ label = 'Image', value, onChange, aspect = '3 / 4',
     if (file.size > MAX_UPLOAD) return setUploadError('Images must be under 8 MB.');
     setBusy(true);
     try {
-      const res = await adminApi.upload(file);
+      const res = await adminApi.upload(file, folder);
       setBroken(false);
       onChange(res.urlPackshot || res.url);
     } catch (err) {
@@ -203,6 +203,62 @@ export function ImageField({ label = 'Image', value, onChange, aspect = '3 / 4',
               onChange(e.target.value);
             }}
           />
+          {value ? (
+            <button type="button" className="admin-btn" onClick={() => onChange('')}>
+              Remove
+            </button>
+          ) : null}
+        </div>
+      </div>
+      {error || uploadError ? <span className="admin-field-error">{error || uploadError}</span> : null}
+    </div>
+  );
+}
+
+const MAX_VIDEO = 30 * 1024 * 1024;
+
+/** MP4 or WebM upload, or a pasted video URL. Stored on Cloudinary with the images. */
+export function VideoField({ label = 'Video', value, onChange, error, folder }) {
+  const [busy, setBusy] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const inputId = useId();
+
+  const onFile = async (file) => {
+    if (!file) return;
+    setUploadError('');
+    if (file.type !== 'video/mp4' && file.type !== 'video/webm') return setUploadError('Choose an MP4 or WebM.');
+    if (file.size > MAX_VIDEO) return setUploadError('Videos must be under 30 MB.');
+    setBusy(true);
+    try {
+      const res = await adminApi.upload(file, folder);
+      onChange(res.url);
+    } catch (err) {
+      setUploadError(err.message || 'Upload failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className={`admin-field ${error || uploadError ? 'has-error' : ''}`}>
+      <label htmlFor={inputId}>{label}</label>
+      <div className="admin-image-field">
+        <div className="admin-image-preview" style={{ aspectRatio: '16 / 9' }}>
+          {value ? (
+            <video src={value} muted playsInline controls />
+          ) : (
+            <span className="admin-muted">
+              <ImageSquare size={22} />
+              No video
+            </span>
+          )}
+        </div>
+        <div className="admin-image-actions">
+          <label className="admin-btn">
+            <UploadSimple size={14} /> {busy ? 'Uploading…' : 'Upload'}
+            <input type="file" accept="video/mp4,video/webm" hidden disabled={busy} onChange={(e) => onFile(e.target.files?.[0])} />
+          </label>
+          <input id={inputId} placeholder="or paste an MP4 URL" value={value || ''} onChange={(e) => onChange(e.target.value)} />
           {value ? (
             <button type="button" className="admin-btn" onClick={() => onChange('')}>
               Remove

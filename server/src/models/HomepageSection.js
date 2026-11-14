@@ -12,6 +12,7 @@ const homepageSectionSchema = new mongoose.Schema(
         'udbhav',
         'categories',
         'bestsellers',
+        'lookbook',
         'instagram',
         'newsletter',
       ],

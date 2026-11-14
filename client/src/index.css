@@ -93,6 +93,62 @@ button:not(:disabled):focus-visible,
   border-color: #141414;
 }
 
+button.icon-btn:hover,
+button.icon-btn:focus-visible,
+button.admin-icon-btn:hover,
+button.admin-icon-btn:focus-visible,
+button.link-btn:hover,
+button.link-btn:focus-visible {
+  background-color: transparent;
+  border-color: transparent;
+  color: inherit;
+}
+
+button.tone-danger:hover,
+button.tone-danger:focus-visible,
+button.admin-btn-danger:hover,
+button.admin-btn-danger:focus-visible {
+  background-color: #6e1616;
+  border-color: #6e1616;
+  color: #f5f2ec;
+}
+
+button.tone-warn:hover,
+button.tone-warn:focus-visible,
+button.admin-btn-warn:hover,
+button.admin-btn-warn:focus-visible {
+  background-color: #6e5518;
+  border-color: #6e5518;
+  color: #f5f2ec;
+}
+
+button.tone-info:hover,
+button.tone-info:focus-visible,
+button.admin-btn-info:hover,
+button.admin-btn-info:focus-visible {
+  background-color: #163a52;
+  border-color: #163a52;
+  color: #f5f2ec;
+}
+
+button.admin-btn-ok:hover,
+button.admin-btn-ok:focus-visible {
+  background-color: #163826;
+  border-color: #163826;
+  color: #f5f2ec;
+}
+
+.tone-ok { --tone: var(--color-success); }
+.tone-info { --tone: var(--color-info); }
+.tone-warn { --tone: var(--color-warning); }
+.tone-danger { --tone: var(--color-danger); }
+
+.tone-chip {
+  border: 1px solid color-mix(in srgb, var(--tone, var(--color-border)) 45%, var(--color-border));
+  color: var(--tone, inherit);
+  background: color-mix(in srgb, var(--tone, transparent) 10%, transparent);
+}
+
 button:disabled,
 .admin-btn:disabled {
   cursor: not-allowed;

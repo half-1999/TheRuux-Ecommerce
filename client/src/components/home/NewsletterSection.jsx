@@ -53,7 +53,7 @@ export function NewsletterSection({ copy }) {
             className="flex-1"
           />
           <Button type="submit" variant="inverse" loading={loading} className="sm:mb-0.5">
-            Join
+            {copy?.ctaLabel || 'Join'}
           </Button>
         </form>
       </div>

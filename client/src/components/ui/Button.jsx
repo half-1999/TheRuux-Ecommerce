@@ -9,7 +9,9 @@ const variants = {
   secondary: `border border-[#1a1a1a] bg-transparent text-[#141414] ${hover}`,
   ghost: `bg-transparent text-[#141414] ${hover}`,
   inverse: `bg-[#F5F2EC] text-[#141414] ${hover}`,
-  danger: `bg-[#8b1e1e] text-[#F5F2EC] ${hover}`,
+  danger: 'tone-danger border border-[#8b1e1e] bg-[#8b1e1e] text-[#F5F2EC]',
+  warn: 'tone-warn border border-[#8a6a1f] bg-[#8a6a1f] text-[#F5F2EC]',
+  info: 'tone-info border border-[#1e4d6b] bg-[#1e4d6b] text-[#F5F2EC]',
 };
 
 export function Button({

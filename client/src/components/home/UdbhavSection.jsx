@@ -47,14 +47,27 @@ export function UdbhavSection({ collection, copy }) {
       ref={ref}
       className="relative isolate flex min-h-[100svh] items-end overflow-hidden bg-[var(--color-bg-inverse)] text-[var(--color-text-inverse)]"
     >
-      <img
-        ref={imgRef}
-        src={media}
-        alt={`${title} collection editorial`}
-        className="absolute inset-0 h-[115%] w-full object-cover will-change-transform"
-        loading="eager"
-        onError={() => setMediaFailed(true)}
-      />
+      {copy?.mediaType === 'video' && !mediaFailed && chosen ? (
+        <video
+          ref={imgRef}
+          src={chosen}
+          className="absolute inset-0 h-[115%] w-full object-cover will-change-transform"
+          autoPlay
+          muted
+          loop
+          playsInline
+          onError={() => setMediaFailed(true)}
+        />
+      ) : (
+        <img
+          ref={imgRef}
+          src={mediaFailed || copy?.mediaType === 'video' ? mood.udbhav : media}
+          alt={`${title} collection editorial`}
+          className="absolute inset-0 h-[115%] w-full object-cover will-change-transform"
+          loading="eager"
+          onError={() => setMediaFailed(true)}
+        />
+      )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/15" aria-hidden />
       <div
         ref={textRef}

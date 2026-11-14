@@ -25,6 +25,7 @@ import {
   productsSpec,
   SHIPPING_NOTE,
 } from './seed-catalog.js';
+import { PRIVACY_BODY, RETURNS_BODY, TERMS_BODY } from '../content/store-pages.js';
 
 const SIZES = ['S', 'M', 'L', 'XL'];
 
@@ -77,15 +78,7 @@ Need something faster for an event? Contact us before you place the order — we
   {
     slug: 'returns-exchanges',
     title: 'Returns & Exchanges',
-    body: `We want the piece that fits your story.
-
-Unused items with original tags may be exchanged within 7 days of delivery for size or colour (subject to stock).
-
-Personalized IDENTITY tees with custom DTF text are final sale unless defective.
-
-To start an exchange, open your order in Account → Orders and write to us with the order number, or use the Contact form.
-
-Refunds (when applicable) return to the original payment method after inspection.`,
+    body: RETURNS_BODY,
   },
   {
     slug: 'faqs',
@@ -120,28 +113,12 @@ Instagram DMs are welcome for quick vibes — order issues are faster through th
   {
     slug: 'privacy',
     title: 'Privacy Policy',
-    body: `TheRuux respects your data.
-
-We collect account details, order information, and optional location suggestions you approve at checkout to fulfill purchases and improve the store.
-
-We do not sell personal data. Payment details are processed by Cashfree — we do not store full card numbers.
-
-Cookies and local storage keep your session, bag, and preferences working. You can clear them in your browser anytime.
-
-Questions: use Contact or email the address listed on your order confirmation.`,
+    body: PRIVACY_BODY,
   },
   {
     slug: 'terms',
     title: 'Terms of Service',
-    body: `By using TheRuux.com you agree to shop in good faith: accurate details, respectful use of the site, and acceptance of product descriptions, pricing, and stock availability at checkout.
-
-Orders are confirmed when payment succeeds. We may cancel orders for fraud risk, pricing errors, or stock failure — with a refund where payment was taken.
-
-Product imagery may include campaign and stand-in photography; colour and texture can vary slightly by screen.
-
-Intellectual property for TheRuux names, graphics, and site design remains with the brand.
-
-Governing law: India. Disputes: jurisdiction of the brand's registered city courts unless required otherwise by law.`,
+    body: TERMS_BODY,
   },
 ];
 

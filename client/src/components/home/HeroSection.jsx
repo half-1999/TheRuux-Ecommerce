@@ -19,11 +19,17 @@ export function HeroSection({ section, copy }) {
   const mediaRef = useRef(null);
   const [index, setIndex] = useState(0);
   const [videoFailed, setVideoFailed] = useState(false);
-  const cmsVideo =
-    section?.mediaUrl && section.mediaUrl !== '/hero/hero.mp4' ? section.mediaUrl : '';
-  const isImage = section?.mediaType === 'image';
-  const videoUrl = videoFailed || isImage ? '' : cmsVideo || PUBLIC_HERO_VIDEO;
-  const slides = isImage && section.mediaUrl ? [section.mediaUrl] : SLIDES;
+  const gallery = (section?.config?.images || []).map((img) => img.url).filter(Boolean);
+  const wantsImage = section?.mediaType === 'image';
+  const wantsVideo = section?.mediaType === 'video' && section?.mediaUrl && section.mediaUrl !== '/hero/hero.mp4';
+  const videoUrl = videoFailed || wantsImage ? '' : wantsVideo ? section.mediaUrl : PUBLIC_HERO_VIDEO;
+  const cmsSlides = wantsImage ? [section.mediaUrl, ...gallery].filter(Boolean) : videoFailed ? gallery : [];
+  const slides = cmsSlides.length ? cmsSlides : SLIDES;
+
+  useEffect(() => {
+    setVideoFailed(false);
+    setIndex(0);
+  }, [section?.mediaUrl, section?.mediaType]);
 
   useEffect(() => {
     if (prefersReducedMotion() || videoUrl || slides.length < 2) return undefined;
@@ -104,15 +110,15 @@ export function HeroSection({ section, copy }) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: EASE }}
-          className="h-25 w-auto object-contain brightness-0 invert"
+          className="h-12 w-auto object-contain brightness-0 invert sm:h-16 md:h-20"
         />
         <motion.p
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.75, ease: EASE, delay: 0.12 }}
-          className="mt-1 font-[family-name:var(--font-script)] text-[clamp(1.65rem,3.2vw,2.6rem)] leading-[1.2] text-white/80"
+          className="mt-1 font-[family-name:var(--font-script)] text-[clamp(1.05rem,3.4vw,2rem)] leading-[1.15] text-white/80"
         >
-          {copy?.title || 'Beyond Boundaries.'}
+          {copy?.title || 'Beyond boundaries'}
         </motion.p>
         <motion.p
           initial={{ opacity: 0, y: 14 }}

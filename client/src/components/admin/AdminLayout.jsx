@@ -22,7 +22,11 @@ export function AdminLayout() {
   const setDrawerOpen = (open) => setDrawerPath(open ? location.pathname : null);
 
   const nav = useQuery({ queryKey: ['admin-navigation'], queryFn: adminApi.navigation, staleTime: 60_000 });
-  const items = (nav.data?.items || DEFAULT_NAV).filter((item) => item.enabled);
+  const source = nav.data?.items || DEFAULT_NAV;
+  const withLogs = source.some((item) => item.id === 'logs')
+    ? source
+    : [...source, DEFAULT_NAV.find((item) => item.id === 'logs')];
+  const items = withLogs.filter((item) => item?.enabled);
 
   useEffect(() => {
     localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');

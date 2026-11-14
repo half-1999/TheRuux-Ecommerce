@@ -19,6 +19,7 @@ import { Category } from '../models/Category.js';
 import { Collection } from '../models/Collection.js';
 import { Page } from '../models/Page.js';
 import { AppError } from '../utils/errors.js';
+import { adminReadLogs } from '../utils/live-log.js';
 
 const router = Router();
 router.use(requireAuth, requireAdmin);
@@ -75,7 +76,7 @@ const sectionSchema = z
         secondaryCtaHref: link.optional(),
         images: z
           .array(z.object({ url: link, alt: z.string().max(160).default(''), href: link.default('') }))
-          .max(8)
+          .max(12)
           .optional(),
       })
       .strict()
@@ -461,6 +462,14 @@ router.post(
 );
 
 router.get(
+  '/logs',
+  asyncHandler(async (req, res) => {
+    const source = req.query.source === 'system' ? 'system' : 'api';
+    res.json(await adminReadLogs(source));
+  }),
+);
+
+router.get(
   '/navigation',
   asyncHandler(async (_req, res) => {
     res.json(await admin.adminGetNavigation());
@@ -576,7 +585,7 @@ router.post(
   '/media/upload',
   upload.single('file'),
   asyncHandler(async (req, res) => {
-    res.status(201).json(await uploadMedia(req.file));
+    res.status(201).json(await uploadMedia(req.file, { folder: req.body?.folder }));
   }),
 );
 

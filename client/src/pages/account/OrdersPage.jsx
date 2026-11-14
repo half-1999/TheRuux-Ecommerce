@@ -2,11 +2,21 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi } from '../../api/client';
 import { formatInr } from '../../lib/media';
-import { formatOrderDate, orderStatusLabel, paymentStatusLabel } from '../../lib/orderStatus';
+import { formatOrderDate, orderStatusLabel, paymentStatusLabel, statusTone } from '../../lib/orderStatus';
 import { Skeleton } from '../../components/ui';
 
 function moneyOrFree(value) {
   return Number(value) ? formatInr(value) : 'Free';
+}
+
+function nextStep(order) {
+  if (order.aftercare?.type === 'return') return 'Return requested';
+  if (order.aftercare?.type === 'exchange') return 'Exchange requested';
+  const actions = order.actions || {};
+  if (actions.canCancel) return `You can cancel until ${formatOrderDate(actions.cancelUntil)}`;
+  if (actions.canReturn) return `Return open until ${formatOrderDate(actions.returnUntil)}`;
+  if (actions.canExchange) return `Exchange open until ${formatOrderDate(actions.exchangeUntil)}`;
+  return '';
 }
 
 export function OrdersPage() {
@@ -46,11 +56,12 @@ export function OrdersPage() {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2 text-xs uppercase tracking-[var(--tracking-caps)]">
-            <span className="border border-[var(--color-border)] px-2 py-1">{orderStatusLabel(order.status)}</span>
-            <span className="border border-[var(--color-border)] px-2 py-1">
+            <span className={`tone-chip tone-${statusTone(order.status)} px-2 py-1`}>{orderStatusLabel(order.status)}</span>
+            <span className={`tone-chip tone-${statusTone(order.paymentStatus)} px-2 py-1`}>
               Payment {paymentStatusLabel(order.paymentStatus)}
             </span>
           </div>
+          {nextStep(order) ? <p className="mt-3 text-sm">{nextStep(order)}</p> : null}
           {order.statusReason ? (
             <p className="mt-3 max-w-xl text-sm text-[var(--color-text-muted)]">{order.statusReason}</p>
           ) : null}

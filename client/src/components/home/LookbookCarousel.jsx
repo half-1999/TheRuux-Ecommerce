@@ -23,13 +23,23 @@ const LOOKS = [
 const LOOP_SECONDS = 42;
 
 function Look({ look, hidden }) {
+  const external = /^https?:\/\//i.test(look.href || '');
+  const className = 'group relative mr-4 block h-[58vh] w-[72vw] shrink-0 overflow-hidden bg-[var(--color-bg-muted)] sm:w-[42vw] md:mr-6 md:h-[70vh] md:w-[28vw]';
+  const shared = { tabIndex: hidden ? -1 : undefined, 'aria-hidden': hidden || undefined, className };
+  return external ? (
+    <a href={look.href} target="_blank" rel="noreferrer" {...shared}>
+      {lookBody(look, hidden)}
+    </a>
+  ) : (
+    <Link to={look.href || '/collections/udbhav'} {...shared}>
+      {lookBody(look, hidden)}
+    </Link>
+  );
+}
+
+function lookBody(look, hidden) {
   return (
-    <Link
-      to="/collections/udbhav"
-      tabIndex={hidden ? -1 : undefined}
-      aria-hidden={hidden || undefined}
-      className="group relative mr-4 block h-[58vh] w-[72vw] shrink-0 overflow-hidden bg-[var(--color-bg-muted)] sm:w-[42vw] md:mr-6 md:h-[70vh] md:w-[28vw]"
-    >
+    <>
       <img
         src={look.src}
         alt={hidden ? '' : look.label}
@@ -40,7 +50,7 @@ function Look({ look, hidden }) {
       <span className="absolute bottom-5 left-5 text-sm font-semibold tracking-[0.14em] text-[#F5F2EC]">
         {look.label}
       </span>
-    </Link>
+    </>
   );
 }
 
@@ -53,8 +63,11 @@ function NavButton({ label, className, onClick, children }) {
 }
 
 /** Continuous lookbook strip. The sequence is duplicated so the loop has no gap. */
-export function LookbookCarousel() {
+export function LookbookCarousel({ looks, copy }) {
   const reduced = prefersReducedMotion();
+  const sequence = (looks || []).some((item) => item?.url)
+    ? looks.filter((item) => item?.url).map((item) => ({ src: item.url, label: item.alt || '', href: item.href || '/shop' }))
+    : LOOKS.map((item) => ({ ...item, href: '/collections/udbhav' }));
   const viewportRef = useRef(null);
   const trackRef = useRef(null);
   const offsetRef = useRef(0);
@@ -62,7 +75,7 @@ export function LookbookCarousel() {
   const halfRef = useRef(0);
   const [paused, setPaused] = useState(reduced);
 
-  const frames = reduced ? LOOKS : [...LOOKS, ...LOOKS];
+  const frames = reduced ? sequence : [...sequence, ...sequence];
 
   useEffect(() => {
     if (reduced) return undefined;
@@ -123,10 +136,10 @@ export function LookbookCarousel() {
     <section className="relative bg-[var(--color-bg)]">
       <div className="px-[var(--space-header-x)] pt-[var(--space-section-y)]">
         <p className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
-          Lookbook
+          {copy?.config?.eyebrow || 'Lookbook'}
         </p>
         <h2 className="mt-2 max-w-xl text-[length:var(--text-2xl)] font-semibold md:text-[length:var(--text-3xl)]">
-          New pieces. Same attitude.
+          {copy?.title || 'New pieces. Same attitude.'}
         </h2>
       </div>
       <div

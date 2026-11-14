@@ -263,9 +263,20 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
     save.mutate();
   };
 
-  const attach = async (url) => {
+  const productFolder = () => {
+    const selected = (cats.data?.items || []).find((item) => form.categoryIds.includes(item.id));
+    return selected?.slug ? `products/${selected.slug}` : '';
+  };
+
+  const attach = async (media) => {
+    const url = typeof media === 'string' ? media : media?.urlPackshot || media?.url;
     if (!url) return;
-    const img = { url, alt: `${form.name} ${form.title}`.trim(), kind: images.length ? 'other' : 'front' };
+    const img = {
+      url,
+      publicId: typeof media === 'string' ? '' : media.publicId || '',
+      alt: `${form.name} ${form.title}`.trim(),
+      kind: images.length ? 'other' : 'front',
+    };
     if (isNew) {
       setPendingImages((list) => [...list, img]);
       return;
@@ -275,13 +286,17 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
   };
 
   const onFiles = async (files) => {
+    const folder = productFolder();
+    if (!folder) {
+      setMsg({ tone: 'error', text: 'Choose a category first. Photos are stored in that category folder.' });
+      return;
+    }
     setUploading(true);
     try {
       for (const file of files) {
         if (!file.type.startsWith('image/')) throw new Error(`${file.name} is not an image.`);
         if (file.size > 8 * 1024 * 1024) throw new Error(`${file.name} is over 8 MB.`);
-        const res = await adminApi.upload(file);
-        await attach(res.urlPackshot || res.url);
+        await attach(await adminApi.upload(file, folder));
       }
       setMsg({ tone: 'ok', text: 'Images uploaded.' });
     } catch (err) {
@@ -429,9 +444,24 @@ function ProductEditor({ id, isNew, initialForm, initialDetail }) {
           </section>
 
           <section className="admin-card">
+            <h2>Size & fit</h2>
+            <p className="admin-muted" style={{ marginTop: 0 }}>
+              Shown under the size buttons on this product. The measurement chart stays on the Size Guide page.
+            </p>
+            <Field label="Model" hint="Example: Model 5'8 / wears M. Inseam approx. 32.">
+              {(fid) => <input id={fid} value={form.modelInfo} onChange={set('modelInfo')} />}
+            </Field>
+            <Field label="Size note" hint="One or two lines. What to tell someone choosing a size.">
+              {(fid) => <textarea id={fid} rows={3} value={form.sizeGuide} onChange={set('sizeGuide')} />}
+            </Field>
+          </section>
+
+          <section className="admin-card">
             <h2>{isNew ? 'Photos' : 'Images & gallery'}</h2>
             <p className="admin-muted" style={{ marginTop: 0 }}>
-              {isNew ? 'The first photo is the cover. JPG, PNG or WebP, up to 8 MB.' : 'The first image is the card and listing thumbnail. JPG, PNG or WebP, up to 8 MB.'}
+              {isNew
+                ? 'Choose a category first. The first photo is the cover. JPG, PNG or WebP, up to 8 MB.'
+                : 'Photos go in the first selected category folder. The first image is the cover. JPG, PNG or WebP, up to 8 MB.'}
             </p>
             <div className="admin-gallery" style={{ marginBottom: '0.75rem' }}>
               {images.map((img, i) => (

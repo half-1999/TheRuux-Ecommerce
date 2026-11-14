@@ -32,14 +32,27 @@ export function BestsellersSection({ copy }) {
   return (
     <section ref={ref} className="relative min-h-[70vh] overflow-hidden bg-[var(--color-bg-muted)]">
       {/* REPLACE: bestsellers campaign visual */}
-      <img
-        ref={imgRef}
-        src={!mediaFailed && copy?.mediaUrl ? copy.mediaUrl : mood.bestsellers}
-        alt="TheRuux bestsellers"
-        className="absolute inset-0 h-full w-full object-cover will-change-transform"
-        loading="lazy"
-        onError={() => setMediaFailed(true)}
-      />
+      {copy?.mediaType === 'video' && !mediaFailed && copy?.mediaUrl ? (
+        <video
+          ref={imgRef}
+          src={copy.mediaUrl}
+          className="absolute inset-0 h-full w-full object-cover will-change-transform"
+          autoPlay
+          muted
+          loop
+          playsInline
+          onError={() => setMediaFailed(true)}
+        />
+      ) : (
+        <img
+          ref={imgRef}
+          src={!mediaFailed && copy?.mediaType !== 'video' && copy?.mediaUrl ? copy.mediaUrl : mood.bestsellers}
+          alt="TheRuux bestsellers"
+          className="absolute inset-0 h-full w-full object-cover will-change-transform"
+          loading="lazy"
+          onError={() => setMediaFailed(true)}
+        />
+      )}
       <div className="absolute inset-0 bg-black/40" />
       <div className="relative z-10 flex min-h-[70vh] flex-col items-start justify-end px-[var(--space-header-x)] py-16 text-white md:py-24">
         <p className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-white/60">

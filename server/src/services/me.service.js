@@ -4,6 +4,46 @@ import { User } from '../models/User.js';
 import { AppError } from '../utils/errors.js';
 import { formatMoney } from '../utils/money.js';
 import { getCommerceConfig } from './commerce-config.service.js';
+import { orderHoldsStock, releaseOrderStock } from './inventory.service.js';
+
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+export const CANCEL_WINDOW_MS = 2 * HOUR;
+export const RETURN_WINDOW_MS = 3 * DAY;
+export const EXCHANGE_WINDOW_MS = 7 * DAY;
+
+const isPendingOrder = (order) =>
+  order.status === 'PENDING_PAYMENT' ||
+  (order.status === 'PROCESSING' && order.paymentStatus === 'PENDING');
+
+const deliveredMoment = (order) => {
+  if (!['DELIVERED', 'COMPLETED'].includes(order.status)) return null;
+  if (order.deliveredAt) return new Date(order.deliveredAt);
+  const hit = (order.timeline || []).find((entry) => entry.status === 'DELIVERED' && entry.at);
+  return hit ? new Date(hit.at) : null;
+};
+
+export const orderActions = (order, now = Date.now()) => {
+  const placed = new Date(order.placedAt || order.createdAt || 0).getTime();
+  const cancelUntil = placed + CANCEL_WINDOW_MS;
+  const delivered = deliveredMoment(order);
+  const returnUntil = delivered ? delivered.getTime() + RETURN_WINDOW_MS : null;
+  const exchangeUntil = delivered ? delivered.getTime() + EXCHANGE_WINDOW_MS : null;
+  const open = !order.aftercare?.type;
+  return {
+    canCancel: isPendingOrder(order) && now <= cancelUntil,
+    cancelUntil: new Date(cancelUntil).toISOString(),
+    canReturn: Boolean(open && returnUntil && now <= returnUntil),
+    returnUntil: returnUntil ? new Date(returnUntil).toISOString() : null,
+    canExchange: Boolean(open && exchangeUntil && now <= exchangeUntil),
+    exchangeUntil: exchangeUntil ? new Date(exchangeUntil).toISOString() : null,
+  };
+};
+
+const presentAftercare = (aftercare) =>
+  aftercare?.type
+    ? { type: aftercare.type, reason: aftercare.reason || '', requestedAt: aftercare.requestedAt || null }
+    : null;
 
 const FALLBACK_PAYMENTS = {
   cashfree: { label: 'Cashfree', detail: 'UPI, cards, netbanking' },
@@ -94,6 +134,9 @@ export const listMyOrders = async (userId) => {
       currency: order.currency,
       placedAt: order.placedAt,
       paidAt: order.paidAt,
+      deliveredAt: order.deliveredAt || null,
+      aftercare: presentAftercare(order.aftercare),
+      actions: orderActions(order),
       trackingNumber: order.trackingNumber || '',
       carrier: order.carrier || '',
       itemCount: (order.items || []).reduce((count, item) => count + (item.quantity || 0), 0),
@@ -123,7 +166,70 @@ export const getMyOrder = async (userId, orderNumber) => {
     itemCount: (order.items || []).reduce((count, item) => count + (item.quantity || 0), 0),
     items: (order.items || []).map(presentItem),
     timeline: presentTimeline(order.timeline),
+    deliveredAt: order.deliveredAt || null,
+    aftercare: presentAftercare(order.aftercare),
+    actions: orderActions(order),
   };
+};
+
+const ownOrder = async (userId, orderNumber) => {
+  const order = await Order.findOne({ orderNumber, userId });
+  if (!order) throw new AppError(404, 'NOT_FOUND', 'Order not found');
+  return order;
+};
+
+export const cancelMyOrder = async (userId, orderNumber) => {
+  const order = await ownOrder(userId, orderNumber);
+  const actions = orderActions(order);
+  if (!isPendingOrder(order)) {
+    throw new AppError(400, 'NOT_CANCELLABLE', 'Only a pending order can be cancelled.');
+  }
+  if (!actions.canCancel) {
+    throw new AppError(400, 'CANCEL_WINDOW_CLOSED', 'A pending order can be cancelled only within 2 hours of placing it.');
+  }
+  if (orderHoldsStock(order.status)) {
+    await releaseOrderStock(order, { reason: 'customer_cancel' });
+  }
+  order.status = 'CANCELLED';
+  order.statusReason = 'Cancelled by the customer within 2 hours.';
+  order.timeline.push({ status: 'CANCELLED', note: order.statusReason, at: new Date() });
+  await order.save();
+  const { sendCancelledNotice } = await import('./email.service.js');
+  sendCancelledNotice(order).catch((err) => console.error('[order] cancel email failed:', err.message));
+  return getMyOrder(userId, orderNumber);
+};
+
+export const requestAftercare = async (userId, orderNumber, { type, reason }) => {
+  const order = await ownOrder(userId, orderNumber);
+  const cleanReason = String(reason || '').trim();
+  if (cleanReason.length < 8) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'Tell us the reason in a sentence.');
+  }
+  if (order.aftercare?.type) {
+    throw new AppError(409, 'AFTERCARE_EXISTS', 'This order already has a return or exchange request.');
+  }
+  const actions = orderActions(order);
+  const allowed = type === 'return' ? actions.canReturn : type === 'exchange' ? actions.canExchange : false;
+  if (!allowed) {
+    const window = type === 'return' ? '3 days' : '7 days';
+    throw new AppError(
+      400,
+      'WINDOW_CLOSED',
+      type === 'return' || type === 'exchange'
+        ? `A ${type} is available for ${window} after delivery.`
+        : 'Choose a return or an exchange.',
+    );
+  }
+  order.aftercare = { type, reason: cleanReason.slice(0, 500), requestedAt: new Date() };
+  order.timeline.push({
+    status: order.status,
+    note: `${type === 'return' ? 'Return' : 'Exchange'} requested: ${order.aftercare.reason}`,
+    at: order.aftercare.requestedAt,
+  });
+  await order.save();
+  const { sendAftercareNotice } = await import('./email.service.js');
+  sendAftercareNotice(order).catch((err) => console.error('[order] aftercare email failed:', err.message));
+  return getMyOrder(userId, orderNumber);
 };
 
 export const getMe = async (userId) => {

@@ -1,12 +1,16 @@
 import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import { env } from '../config/env.js';
+import { recordLog } from '../utils/live-log.js';
 import {
+  aftercareEmail,
+  cancelledEmail,
   contactAckEmail,
   deliveredEmail,
   newsletterWelcomeEmail,
   orderConfirmationEmail,
   shippedEmail,
+  welcomeEmail,
 } from './email.templates.js';
 
 let transporter;
@@ -32,21 +36,31 @@ const getResend = () => {
 };
 
 export const sendEmail = async ({ to, subject, html, text }) => {
-  if (!env.emailEnabled) {
-    console.log(`[email:dev] → ${to} | ${subject}`);
-    return { ok: true, mocked: true };
-  }
+  if (!to) return { ok: false, error: 'No recipient' };
 
   const client = getResend();
   if (client) {
-    await client.emails.send({
+    const result = await client.emails.send({
       from: env.emailFrom,
       to: [to],
       subject,
       html,
       text,
     });
-    return { ok: true, provider: 'resend' };
+    if (result?.error) {
+      const message = result.error.message || 'Resend rejected the email';
+      console.error(`[email] resend failed → ${to} | ${subject} | ${message}`);
+      recordLog('system', { level: 'danger', message: `Email failed for ${to}: ${message}` });
+      return { ok: false, provider: 'resend', error: message };
+    }
+    console.log(`[email] sent → ${to} | ${subject}`);
+    return { ok: true, provider: 'resend', id: result?.data?.id || null };
+  }
+
+  if (!env.emailEnabled) {
+    console.error(`[email] not sent → ${to} | ${subject} | RESEND_API_KEY is empty`);
+    recordLog('system', { level: 'warn', message: `Email not sent to ${to}. RESEND_API_KEY is empty.` });
+    return { ok: false, error: 'RESEND_API_KEY is empty' };
   }
 
   const smtp = getTransporter();
@@ -70,9 +84,16 @@ const safeSend = async (fn) => {
     return await fn();
   } catch (err) {
     console.error('[email] failed:', err.message);
+    recordLog('system', { level: 'danger', message: `Email failed: ${err.message}` });
     return { ok: false, error: err.message };
   }
 };
+
+export const sendWelcome = ({ name, email }) =>
+  safeSend(async () => {
+    const tpl = welcomeEmail({ name });
+    return sendEmail({ to: email, ...tpl });
+  });
 
 export const sendOrderConfirmation = (order) =>
   safeSend(async () => {
@@ -89,6 +110,18 @@ export const sendShippedNotice = (order) =>
 export const sendDeliveredNotice = (order) =>
   safeSend(async () => {
     const tpl = deliveredEmail(order);
+    return sendEmail({ to: order.email, ...tpl });
+  });
+
+export const sendAftercareNotice = (order) =>
+  safeSend(async () => {
+    const tpl = aftercareEmail(order);
+    return sendEmail({ to: order.email, ...tpl });
+  });
+
+export const sendCancelledNotice = (order) =>
+  safeSend(async () => {
+    const tpl = cancelledEmail(order);
     return sendEmail({ to: order.email, ...tpl });
   });
 

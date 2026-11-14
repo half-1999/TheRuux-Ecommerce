@@ -6,6 +6,7 @@ import {
   Package,
   Plus,
   Receipt,
+  Scroll,
   SquaresFour,
   Stack,
   Star,
@@ -28,6 +29,7 @@ export const NAV_ICONS = {
   homepage: Layout,
   navigation: ListDashes,
   settings: GearSix,
+  logs: Scroll,
   plus: Plus,
   star: Star,
 };
@@ -46,6 +48,7 @@ export const DEFAULT_NAV = [
   { id: 'homepage', label: 'Homepage CMS', to: '/admin/homepage', icon: 'homepage', group: 'Content', enabled: true },
   { id: 'navigation', label: 'Navigation', to: '/admin/navigation', icon: 'navigation', group: 'Store', enabled: true },
   { id: 'settings', label: 'Settings', to: '/admin/settings', icon: 'settings', group: 'Store', enabled: true },
+  { id: 'logs', label: 'Logs', to: '/admin/logs', icon: 'logs', group: 'Store', enabled: true },
 ];
 
 /** Consecutive items with the same group render under one heading. */

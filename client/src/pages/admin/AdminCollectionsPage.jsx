@@ -11,6 +11,7 @@ const config = {
   update: adminApi.updateCollection,
   remove: adminApi.deleteCollection,
   storePath: '/collections',
+  mediaScope: 'collections',
   imageKey: 'heroMediaUrl',
   imageLabel: 'Hero image',
   aspect: '16 / 9',

@@ -2,16 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../api/client';
-import { ORDER_STATUS_LABEL, formatOrderDate, orderStatusLabel, paymentStatusLabel } from '../../lib/orderStatus';
+import { ORDER_STATUS_LABEL, formatOrderDate, orderStatusLabel, paymentStatusLabel, statusTone } from '../../lib/orderStatus';
 import { Notice, PageHeader, Pagination, TableState } from '../../components/admin/AdminUI';
+import { OrderStepButtons } from '../../components/admin/OrderStepButtons';
 import { useDebounced } from '../../components/admin/adminFormat';
-
-function badgeClass(status) {
-  if (['PAID', 'DELIVERED', 'COMPLETED'].includes(status)) return 'ok';
-  if (['FAILED', 'CANCELLED', 'REFUNDED'].includes(status)) return 'danger';
-  if (status === 'PENDING_PAYMENT' || status === 'PENDING') return 'warn';
-  return '';
-}
 
 function money(value) {
   const amount = Number(value);
@@ -64,7 +58,7 @@ export function AdminOrdersPage() {
 
   return (
     <>
-      <PageHeader crumbs={[{ label: 'Orders' }]} title="Orders" description="Status changes follow the order workflow. Payment status only changes through verified payment events." />
+      <PageHeader crumbs={[{ label: 'Orders' }]} title="Orders" description="Move an order with the coloured step. Cancel releases reserved stock. Payment status only changes through a verified payment." />
       <Notice tone={msg?.tone} onClose={() => setMsg(null)}>
         {msg?.text}
       </Notice>
@@ -82,7 +76,7 @@ export function AdminOrdersPage() {
         </select>
       </div>
       <div className="admin-table-wrap">
-        <table className="admin-table">
+        <table className="admin-table admin-orders">
           <thead>
             <tr>
               <th>Order</th>
@@ -149,18 +143,17 @@ export function AdminOrdersPage() {
                   </div>
                 </td>
                 <td>
-                  <select
-                    value={order.status}
-                    disabled={changeStatus.isPending || !order.transitions?.length}
-                    aria-label={`Status of ${order.orderNumber}`}
-                    onChange={(event) => onStatus(order, event.target.value)}
-                  >
-                    {[order.status, ...(order.transitions || [])].map((value) => (
-                      <option key={value} value={value}>
-                        {value === order.status ? orderStatusLabel(value) : `→ ${orderStatusLabel(value)}`}
-                      </option>
-                    ))}
-                  </select>
+                  <span className={`admin-badge ${statusTone(order.status)}`}>{orderStatusLabel(order.status)}</span>
+                  {order.aftercare?.type ? (
+                    <p className="admin-muted" style={{ margin: '0.35rem 0 0' }}>
+                      {order.aftercare.type === 'return' ? 'Return requested' : 'Exchange requested'}
+                    </p>
+                  ) : null}
+                  <OrderStepButtons
+                    transitions={order.transitions}
+                    pending={changeStatus.isPending}
+                    onStep={(toStatus) => onStatus(order, toStatus)}
+                  />
                   {order.statusReason ? (
                     <p className="admin-muted" style={{ margin: '0.4rem 0 0', maxWidth: '16rem' }}>
                       {order.statusReason}
@@ -168,7 +161,7 @@ export function AdminOrdersPage() {
                   ) : null}
                 </td>
                 <td>
-                  <span className={`admin-badge ${badgeClass(order.paymentStatus)}`}>
+                  <span className={`admin-badge ${statusTone(order.paymentStatus)}`}>
                     {paymentStatusLabel(order.paymentStatus)}
                   </span>
                   <p style={{ margin: '0.35rem 0 0' }}>{order.paymentLabel || '—'}</p>

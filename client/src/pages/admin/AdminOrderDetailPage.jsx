@@ -2,14 +2,8 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../api/client';
-import { ORDER_STATUS_LABEL, formatOrderDate, orderStatusLabel, paymentStatusLabel } from '../../lib/orderStatus';
-
-function badgeClass(status) {
-  if (['PAID', 'DELIVERED', 'COMPLETED'].includes(status)) return 'ok';
-  if (['FAILED', 'CANCELLED', 'REFUNDED'].includes(status)) return 'danger';
-  if (status === 'PENDING_PAYMENT' || status === 'PENDING') return 'warn';
-  return '';
-}
+import { formatOrderDate, orderStatusLabel, paymentStatusLabel, statusTone } from '../../lib/orderStatus';
+import { OrderStepButtons } from '../../components/admin/OrderStepButtons';
 
 function money(value) {
   const amount = Number(value);
@@ -94,6 +88,7 @@ export function AdminOrderDetailPage() {
           <p className="admin-muted" style={{ margin: '0.35rem 0 0' }}>
             Placed {formatOrderDate(data.placedAt) || '—'}
             {data.paidAt ? ` · Paid ${formatOrderDate(data.paidAt)}` : ''}
+            {data.deliveredAt ? ` · Delivered ${formatOrderDate(data.deliveredAt)}` : ''}
             {data.itemCount ? ` · ${data.itemCount} ${data.itemCount === 1 ? 'piece' : 'pieces'}` : ''}
           </p>
         </div>
@@ -179,12 +174,20 @@ export function AdminOrderDetailPage() {
         <div className="admin-order-stack">
           <div className="admin-card">
             <p>
-              <span className={`admin-badge ${badgeClass(data.status)}`}>{orderStatusLabel(data.status)}</span>{' '}
-              <span className={`admin-badge ${badgeClass(data.paymentStatus)}`}>
+              <span className={`admin-badge ${statusTone(data.status)}`}>{orderStatusLabel(data.status)}</span>{' '}
+              <span className={`admin-badge ${statusTone(data.paymentStatus)}`}>
                 Payment {paymentStatusLabel(data.paymentStatus)}
               </span>
             </p>
             {data.statusReason ? <p style={{ marginTop: '0.75rem' }}>{data.statusReason}</p> : null}
+            {data.aftercare?.type ? (
+              <div className={`admin-notice ${data.aftercare.type === 'return' ? 'warn' : 'info'}`} style={{ marginTop: '0.85rem' }}>
+                <p>
+                  <strong>{data.aftercare.type === 'return' ? 'Return requested' : 'Exchange requested'}</strong>
+                  {data.aftercare.reason ? ` — ${data.aftercare.reason}` : ''}
+                </p>
+              </div>
+            ) : null}
             <div className="admin-kv" style={{ marginTop: '1rem' }}>
               <div>
                 <p className="admin-metric-label">Customer</p>
@@ -229,37 +232,39 @@ export function AdminOrderDetailPage() {
           </div>
 
           <div className="admin-card">
-            <p className="admin-metric-label">Update order</p>
-            <div className="admin-field" style={{ marginTop: '0.75rem' }}>
-              <label>Status</label>
-              <select
-                value={data.status}
-                disabled={transition.isPending}
-                onChange={(event) => {
-                  const toStatus = event.target.value;
-                  if (!toStatus || toStatus === data.status) return;
-                  transition.mutate({
-                    toStatus,
-                    trackingNumber: trackingNumber || undefined,
-                    carrier: carrier || undefined,
-                  });
-                }}
-              >
-                {Object.entries(ORDER_STATUS_LABEL).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="admin-field">
-              <label>Tracking</label>
-              <input value={trackingNumber} onChange={(e) => setTrackingDraft(e.target.value)} />
-            </div>
-            <div className="admin-field">
-              <label>Carrier</label>
-              <input value={carrier} onChange={(e) => setCarrierDraft(e.target.value)} />
-            </div>
+            <p className="admin-metric-label">Next step</p>
+            <OrderStepButtons
+              transitions={data.transitions}
+              pending={transition.isPending}
+              onStep={(toStatus) => {
+                const body = {
+                  toStatus,
+                  trackingNumber: trackingNumber || undefined,
+                  carrier: carrier || undefined,
+                };
+                if (toStatus === 'REFUNDED') {
+                  const note = window.prompt('Refunds are issued in the payment provider dashboard. Enter the provider refund reference:');
+                  if (!note?.trim()) return;
+                  body.note = note.trim().slice(0, 500);
+                } else if (toStatus === 'CANCELLED' && !window.confirm(`Cancel ${data.orderNumber}? Reserved stock is released.`)) {
+                  return;
+                }
+                transition.mutate(body);
+              }}
+            />
+            {data.transitions?.includes('SHIPPED') ? (
+              <>
+                <div className="admin-field" style={{ marginTop: '0.85rem' }}>
+                  <label>Tracking</label>
+                  <input value={trackingNumber} onChange={(e) => setTrackingDraft(e.target.value)} />
+                </div>
+                <div className="admin-field">
+                  <label>Carrier</label>
+                  <input value={carrier} onChange={(e) => setCarrierDraft(e.target.value)} />
+                </div>
+                <p className="admin-muted">Saved when you mark the order shipped.</p>
+              </>
+            ) : null}
             {transition.error ? <p className="admin-error">{transition.error.message}</p> : null}
             {transition.isSuccess ? <p className="admin-muted">Status saved. Inventory updated.</p> : null}
           </div>

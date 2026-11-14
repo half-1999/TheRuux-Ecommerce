@@ -219,7 +219,13 @@ export function CatalogGroupPage({ config }) {
               </Field>
             </div>
             <div className="admin-stack">
-              <ImageField label={config.imageLabel} value={editing.form[config.imageKey]} onChange={(url) => setField(config.imageKey, url)} aspect={config.aspect} />
+              <ImageField
+                label={config.imageLabel}
+                value={editing.form[config.imageKey]}
+                onChange={(url) => setField(config.imageKey, url)}
+                aspect={config.aspect}
+                folder={`${config.mediaScope || 'categories'}/${editing.form.slug || editing.form.name || 'draft'}`}
+              />
               <label className="admin-check">
                 <input type="checkbox" checked={editing.form.isActive} onChange={(e) => setField('isActive', e.target.checked)} /> Visible on the storefront
               </label>

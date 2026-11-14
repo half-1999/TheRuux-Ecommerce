@@ -92,6 +92,12 @@ const orderSchema = new mongoose.Schema(
     timeline: [timelineSchema],
     placedAt: { type: Date, default: Date.now },
     paidAt: { type: Date, default: null },
+    deliveredAt: { type: Date, default: null },
+    aftercare: {
+      type: { type: String, enum: ['return', 'exchange'] },
+      reason: { type: String, default: '' },
+      requestedAt: { type: Date, default: null },
+    },
   },
   { timestamps: true },
 );

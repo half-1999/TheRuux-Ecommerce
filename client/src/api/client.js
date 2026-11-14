@@ -160,6 +160,8 @@ export const checkoutApi = {
 export const ordersApi = {
   list: () => api.get('/orders'),
   get: (orderNumber) => api.get(`/orders/${orderNumber}`),
+  cancel: (orderNumber) => api.post(`/orders/${orderNumber}/cancel`),
+  aftercare: (orderNumber, body) => api.post(`/orders/${orderNumber}/aftercare`, body),
 };
 
 export const meApi = {
@@ -187,9 +189,10 @@ export const adminApi = {
   archiveProduct: (id) => api.post(`/admin/products/${id}/archive`),
   duplicateProduct: (id) => api.post(`/admin/products/${id}/duplicate`),
   bulkProductStatus: (ids, status) => api.post('/admin/products/bulk', { ids, status }),
-  upload: (file) => {
+  upload: (file, folder) => {
     const form = new window.FormData();
     form.append('file', file);
+    if (folder) form.append('folder', folder);
     return api.post('/admin/media/upload', form);
   },
   addImages: (id, images) => api.post(`/admin/products/${id}/images`, { images }),
@@ -215,6 +218,7 @@ export const adminApi = {
   adjustInventory: (body) => api.post('/admin/inventory/adjust', body),
   inventoryHistory: (variantId) => api.get(`/admin/inventory/${variantId}/history`),
   orders: (params) => api.get(`/admin/orders${q(params)}`),
+  logs: (source) => api.get(`/admin/logs?source=${source}`),
   order: (id) => api.get(`/admin/orders/${id}`),
   transitionOrder: (id, body) => api.post(`/admin/orders/${id}/transition`, body),
   customers: (params) => api.get(`/admin/customers${q(params)}`),

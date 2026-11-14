@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import { env } from './config/env.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { describeActor, recordApi, recordLog } from './utils/live-log.js';
 import { notFound } from './middleware/notFound.js';
 import healthRoutes from './routes/health.routes.js';
 import authRoutes from './routes/auth.routes.js';
@@ -98,6 +99,7 @@ export const createApp = () => {
         ) {
           return callback(null, true);
         }
+        recordLog('system', { level: 'warn', message: `Blocked origin ${origin}` });
         console.warn(`[cors] blocked origin: ${origin}`);
         return callback(null, false);
       },
@@ -107,6 +109,27 @@ export const createApp = () => {
     }),
   );
   app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
+  app.use((req, res, next) => {
+    const started = Date.now();
+    res.on('finish', () => {
+      const pathOnly = String(req.originalUrl || '').split('?')[0];
+      if (req.method === 'OPTIONS' || pathOnly.startsWith('/api/admin/logs')) return;
+      const status = res.statusCode;
+      const entry = {
+        level: status >= 500 ? 'danger' : status >= 400 ? 'warn' : 'info',
+        method: req.method,
+        path: pathOnly.slice(0, 180),
+        status,
+        ms: Date.now() - started,
+        ip: req.ip || '',
+        ua: String(req.get('user-agent') || '').slice(0, 140),
+      };
+      describeActor(req)
+        .then((actor) => recordApi({ ...entry, actor }))
+        .catch(() => recordApi(entry));
+    });
+    next();
+  });
 
   // Cashfree webhook — raw body for signature verification
   app.post(

@@ -1,0 +1,2 @@
+# Existing files are served first. Any other path, including /admin/homepage, returns the app.
+/*  /index.html  200

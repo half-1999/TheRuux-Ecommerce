@@ -15,6 +15,7 @@ import { slugify } from '../utils/slug.js';
 import { toMoney, formatMoney } from '../utils/money.js';
 import { primaryImage } from '../utils/serializers.js';
 import { env } from '../config/env.js';
+import { destroyMedia } from './media.service.js';
 import {
   adjustStock,
   listInventory,
@@ -213,6 +214,7 @@ export const adminDuplicateProduct = async (id, adminId) => {
     publishedAt: null,
     images: (source.images || []).map((image) => ({
       url: image.url,
+      publicId: image.publicId || '',
       alt: image.alt,
       kind: image.kind,
       sortOrder: image.sortOrder,
@@ -269,7 +271,13 @@ export const adminCreateProduct = async (body, adminId) => {
     images: Array.isArray(body.images)
       ? body.images
           .filter((img) => img?.url)
-          .map((img, i) => ({ url: img.url, alt: img.alt || '', kind: img.kind || 'front', sortOrder: i }))
+          .map((img, i) => ({
+            url: img.url,
+            publicId: img.publicId || '',
+            alt: img.alt || '',
+            kind: img.kind || 'front',
+            sortOrder: i,
+          }))
       : [],
     namingNote: body.namingNote || '',
     seo: {
@@ -374,7 +382,14 @@ export const adminAddImages = async (id, images, adminId) => {
   const product = await Product.findById(id);
   if (!product) throw new AppError(404, 'NOT_FOUND', 'Product not found');
   for (const img of images) {
-    product.images.push(img);
+    if (!img?.url) continue;
+    product.images.push({
+      url: img.url,
+      publicId: img.publicId || '',
+      alt: img.alt || '',
+      kind: img.kind || 'other',
+      sortOrder: img.sortOrder ?? product.images.length,
+    });
   }
   await product.save();
   await writeAudit({ adminId, action: 'add_images', entityType: 'product', entityId: id });
@@ -401,8 +416,12 @@ export const adminDeleteImage = async (id, imageId, adminId) => {
   if (!product) throw new AppError(404, 'NOT_FOUND', 'Product not found');
   const img = product.images.id(imageId);
   if (!img) throw new AppError(404, 'NOT_FOUND', 'Image not found');
+  const publicId = img.publicId;
   img.deleteOne();
   await product.save();
+  if (publicId && !(await Product.exists({ 'images.publicId': publicId }))) {
+    await destroyMedia(publicId);
+  }
   await writeAudit({ adminId, action: 'delete_image', entityType: 'product', entityId: id });
   return adminGetProduct(id);
 };
@@ -864,6 +883,9 @@ export const adminListOrders = async (query = {}) => {
       status: order.status,
       paymentStatus: order.paymentStatus,
       statusReason: order.statusReason || '',
+      aftercare: order.aftercare?.type
+        ? { type: order.aftercare.type, reason: order.aftercare.reason || '' }
+        : null,
       ...paymentCopy(order.paymentMethod || (order.paymentStatus === 'PAID' ? 'cashfree' : ''), labels.payments),
       ...shippingCopy(order.shippingMethodId, labels.shipping),
       grandTotal: formatMoney(order.grandTotal),
@@ -974,6 +996,7 @@ export const adminTransitionOrder = async (id, toStatus, adminId, meta = {}) => 
     if (toStatus === 'REFUNDED' && current.paymentStatus === 'PAID') current.paymentStatus = 'REFUNDED';
     if (meta.trackingNumber) current.trackingNumber = meta.trackingNumber;
     if (meta.carrier) current.carrier = meta.carrier;
+    if (toStatus === 'DELIVERED' && !current.deliveredAt) current.deliveredAt = new Date();
     current.timeline.push({
       status: toStatus,
       note: meta.note || `Status → ${toStatus}`,
@@ -991,6 +1014,12 @@ export const adminTransitionOrder = async (id, toStatus, adminId, meta = {}) => 
     meta: { toStatus },
   });
 
+  if (toStatus === 'CANCELLED' && order.email) {
+    const { sendCancelledNotice } = await import('./email.service.js');
+    sendCancelledNotice(order).catch((err) =>
+      console.error('[admin] cancelled email failed:', err.message),
+    );
+  }
   if (toStatus === 'SHIPPED' && order.email) {
     const { sendShippedNotice } = await import('./email.service.js');
     sendShippedNotice(order).catch((err) =>
@@ -1281,11 +1310,12 @@ export const ADMIN_NAV_ROUTES = [
   '/admin/homepage',
   '/admin/navigation',
   '/admin/settings',
+  '/admin/logs',
 ];
 
 export const ADMIN_NAV_ICONS = [
   'dashboard', 'products', 'categories', 'collections', 'inventory', 'orders',
-  'customers', 'payments', 'shipping', 'homepage', 'navigation', 'settings', 'plus', 'star',
+  'customers', 'payments', 'shipping', 'homepage', 'navigation', 'settings', 'logs', 'plus', 'star',
 ];
 
 export const adminGetNavigation = async () => {

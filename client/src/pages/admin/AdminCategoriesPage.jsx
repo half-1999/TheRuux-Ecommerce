@@ -11,6 +11,7 @@ const config = {
   update: adminApi.updateCategory,
   remove: adminApi.deleteCategory,
   storePath: '/shop',
+  mediaScope: 'categories',
   imageKey: 'imageUrl',
   imageLabel: 'Category image (carousel tile)',
   aspect: '3 / 4',

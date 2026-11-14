@@ -9,6 +9,9 @@
     "build": "node -e \"console.log('TheRuux API — no compile step')\"",
     "lint": "eslint src --max-warnings=0",
     "seed": "node src/scripts/seed.js",
+    "seed:rebel": "node src/scripts/seed-rebel.js",
+    "seed:udbhav": "node src/scripts/seed-udbhav.js",
+    "seed:aman": "node src/scripts/seed-aman.js",
     "test:api": "node src/scripts/smoke-api.js",
     "test:admin": "node src/scripts/test-admin.js",
     "verify:phase2": "node src/scripts/verify-phase2.js"

@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi } from '../../api/client';
+import { Button } from '../../components/ui';
 import { formatInr } from '../../lib/media';
-import { formatOrderDate, orderStatusLabel, paymentStatusLabel } from '../../lib/orderStatus';
+import { formatOrderDate, orderStatusLabel, paymentStatusLabel, statusTone } from '../../lib/orderStatus';
 
 function moneyOrFree(value) {
   return Number(value) ? formatInr(value) : 'Free';
@@ -42,9 +44,110 @@ function sameAddress(a, b) {
   );
 }
 
+function OrderActions({ order, onDone }) {
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const actions = order.actions || {};
+  const asked = order.aftercare?.type;
+
+  const run = async (fn) => {
+    setBusy(true);
+    setMessage('');
+    try {
+      await fn();
+      onDone();
+    } catch (err) {
+      setMessage(err.message || 'That did not go through.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (asked) {
+    return (
+      <section className="mt-10 border-t border-[var(--color-border)] pt-6">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
+          {asked === 'return' ? 'Return' : 'Exchange'}
+        </h3>
+        <p className="mt-3 max-w-md text-sm">{order.aftercare.reason}</p>
+        <p className="mt-1 text-xs text-[var(--color-text-subtle)]">
+          Requested {formatOrderDate(order.aftercare.requestedAt)}
+        </p>
+      </section>
+    );
+  }
+
+  if (!actions.canCancel && !actions.canReturn && !actions.canExchange) return null;
+
+  return (
+    <section className="mt-10 border-t border-[var(--color-border)] pt-6">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
+        Your order
+      </h3>
+      {actions.canCancel ? (
+        <div className="mt-4 max-w-md">
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Still pending. You can cancel until {formatOrderDate(actions.cancelUntil)}.
+          </p>
+          <Button
+            variant="danger"
+            className="mt-3"
+            disabled={busy}
+            onClick={() => run(() => ordersApi.cancel(order.orderNumber))}
+          >
+            Cancel order
+          </Button>
+        </div>
+      ) : null}
+      {actions.canReturn || actions.canExchange ? (
+        <form
+          className="mt-6 max-w-md"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const kind = event.nativeEvent.submitter?.value;
+            if (kind !== 'return' && kind !== 'exchange') return;
+            run(() => ordersApi.aftercare(order.orderNumber, { type: kind, reason }));
+          }}
+        >
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {actions.canReturn ? `Return until ${formatOrderDate(actions.returnUntil)}. ` : 'The return window has closed. '}
+            {actions.canExchange ? `Exchange until ${formatOrderDate(actions.exchangeUntil)}.` : ''}
+          </p>
+          <label className="mt-4 block text-sm">
+            Reason
+            <textarea
+              required
+              minLength={8}
+              maxLength={500}
+              rows={3}
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              className="mt-1 w-full resize-none border-b border-[var(--color-border)] bg-transparent py-2 outline-none"
+            />
+          </label>
+          <div className="mt-4 flex flex-wrap gap-6">
+            {actions.canReturn ? (
+              <Button type="submit" value="return" variant="warn" disabled={busy}>
+                Request return
+              </Button>
+            ) : null}
+            {actions.canExchange ? (
+              <Button type="submit" value="exchange" variant="info" disabled={busy}>
+                Request exchange
+              </Button>
+            ) : null}
+          </div>
+        </form>
+      ) : null}
+      {message ? <p className="mt-3 text-sm text-[var(--color-text)]">{message}</p> : null}
+    </section>
+  );
+}
+
 export function OrderDetailPage() {
   const { orderNumber } = useParams();
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['order', orderNumber],
     queryFn: () => ordersApi.get(orderNumber),
   });
@@ -77,8 +180,8 @@ export function OrderDetailPage() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 text-xs uppercase tracking-[var(--tracking-caps)]">
-        <span className="border border-[var(--color-border)] px-2 py-1">{orderStatusLabel(data.status)}</span>
-        <span className="border border-[var(--color-border)] px-2 py-1">
+        <span className={`tone-chip tone-${statusTone(data.status)} px-2 py-1`}>{orderStatusLabel(data.status)}</span>
+        <span className={`tone-chip tone-${statusTone(data.paymentStatus)} px-2 py-1`}>
           Payment {paymentStatusLabel(data.paymentStatus)}
         </span>
       </div>
@@ -201,6 +304,8 @@ export function OrderDetailPage() {
           ) : null}
         </div>
       </section>
+
+      <OrderActions order={data} onDone={() => refetch()} />
 
       {data.timeline?.length ? (
         <section className="mt-8 border-t border-[var(--color-border)] pt-6">

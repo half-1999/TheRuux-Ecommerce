@@ -1,5 +1,6 @@
 import { AppError } from '../utils/errors.js';
 import { captureException } from '../config/sentry.js';
+import { recordLog } from '../utils/live-log.js';
 
 export const errorHandler = (err, _req, res, _next) => {
   if (err instanceof AppError) {
@@ -43,6 +44,7 @@ export const errorHandler = (err, _req, res, _next) => {
   }
 
   console.error(err);
+  recordLog('system', { level: 'danger', message: err.message || 'Internal error' });
   captureException(err);
   return res.status(500).json({
     error: {

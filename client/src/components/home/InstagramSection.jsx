@@ -24,7 +24,9 @@ export function InstagramSection({ links, copy }) {
     <section className="mx-auto max-w-[var(--container)] px-[var(--space-header-x)] py-[var(--space-section-y)]" aria-labelledby="ig-heading">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="max-w-xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">On Instagram</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[var(--tracking-caps)] text-[var(--color-text-subtle)]">
+            {copy?.config?.eyebrow || 'On Instagram'}
+          </p>
           <h2 id="ig-heading" className="mt-2 text-[length:var(--text-2xl)] font-semibold leading-[1.02] md:text-[length:var(--text-display)]">
             {copy?.title || 'THE RUUX, OUT THERE.'}
           </h2>
