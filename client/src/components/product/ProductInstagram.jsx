@@ -1,6 +1,8 @@
 import { Play } from '@phosphor-icons/react';
 import { mood } from '../../lib/media';
 import { prefersReducedMotion } from '../../animations/motion';
+import { instagramEmbed } from '../../lib/instagram';
+import { InstagramFrame } from './InstagramFrame';
 
 const PROFILE = 'https://www.instagram.com/theruux/';
 const VIDEO_FILE = /\.(mp4|webm|mov)(\?|#|$)/i;
@@ -15,6 +17,18 @@ function buildTiles(product) {
   if (links.length) {
     return links.map((link, index) => {
       const href = link.url || PROFILE;
+      const posted = instagramEmbed(href);
+      if (posted && !link.thumbUrl) {
+        return {
+          id: link.id || `ig-${index}`,
+          href: posted.href,
+          embed: posted.embed,
+          thumb: '',
+          video: false,
+          reel: posted.kind === 'reel',
+          caption: link.caption || (posted.kind === 'reel' ? 'Instagram reel' : 'Instagram photo'),
+        };
+      }
       const thumb =
         link.thumbUrl ||
         product.images?.[index % Math.max(product.images.length, 1)]?.url ||
@@ -69,39 +83,45 @@ export function ProductInstagram({ product }) {
       <p className="mt-2 max-w-xl text-sm text-[var(--color-text-muted)]">
         Photos and reels for styling. Open any frame on Instagram.
       </p>
-      <ul className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
+      <ul className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {tiles.map((tile) => (
-          <li key={tile.id}>
-            <a
-              href={tile.href}
-              target="_blank"
-              rel="noreferrer"
-              className="group relative block aspect-[4/5] overflow-hidden bg-[var(--color-bg-muted)]"
-            >
-              {tile.video ? (
-                <video
-                  src={tile.thumb}
-                  muted
-                  loop
-                  playsInline
-                  autoPlay={!reduced}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <img
-                  src={tile.thumb}
-                  alt={tile.caption}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-500 ease-[var(--ease-editorial)] group-hover:scale-[1.03]"
-                />
-              )}
-              {tile.reel ? (
-                <span className="absolute left-3 top-3 inline-flex items-center gap-1 bg-black/55 px-2 py-1 text-[10px] font-semibold uppercase tracking-[var(--tracking-caps)] text-[#F5F2EC]">
-                  <Play size={12} weight="fill" />
-                  Reel
-                </span>
-              ) : null}
-            </a>
+          <li key={tile.id} className={tile.embed ? 'sm:col-span-1' : ''}>
+            {tile.embed ? (
+              <div className="mx-auto w-full max-w-[420px] overflow-hidden bg-white">
+                <InstagramFrame url={tile.href} title={tile.caption} />
+              </div>
+            ) : (
+              <a
+                href={tile.href}
+                target="_blank"
+                rel="noreferrer"
+                className="group relative block aspect-[4/5] overflow-hidden bg-[var(--color-bg-muted)]"
+              >
+                {tile.video ? (
+                  <video
+                    src={tile.thumb}
+                    muted
+                    loop
+                    playsInline
+                    autoPlay={!reduced}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={tile.thumb}
+                    alt={tile.caption}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-transform duration-500 ease-[var(--ease-editorial)] group-hover:scale-[1.03]"
+                  />
+                )}
+                {tile.reel ? (
+                  <span className="absolute left-3 top-3 inline-flex items-center gap-1 bg-black/55 px-2 py-1 text-[10px] font-semibold uppercase tracking-[var(--tracking-caps)] text-[#F5F2EC]">
+                    <Play size={12} weight="fill" />
+                    Reel
+                  </span>
+                ) : null}
+              </a>
+            )}
           </li>
         ))}
       </ul>

@@ -1,5 +1,7 @@
 import { InstagramLogo } from '@phosphor-icons/react';
 import { mood } from '../../lib/media';
+import { instagramEmbed } from '../../lib/instagram';
+import { InstagramFrame } from '../product/InstagramFrame';
 
 /** Editorial columns: [tile indexes, column width, top offset, aspect per tile]. */
 const COLUMNS = [
@@ -10,6 +12,7 @@ const COLUMNS = [
 
 export function InstagramSection({ links, copy }) {
   const profile = copy?.ctaHref || import.meta.env.VITE_INSTAGRAM_URL || 'https://instagram.com';
+  const posts = (links || []).filter((link) => instagramEmbed(link.url));
   const images = copy?.config?.images?.length ? copy.config.images : mood.grid.map((url) => ({ url, alt: '' }));
   const tiles = Array.from({ length: 6 }, (_, i) => {
     const img = images[i % images.length];
@@ -43,6 +46,15 @@ export function InstagramSection({ links, copy }) {
         </a>
       </div>
 
+      {posts.length ? (
+        <ul className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {posts.map((link) => (
+            <li key={link.id || link.url} className="mx-auto w-full max-w-[420px] overflow-hidden bg-white">
+              <InstagramFrame url={link.url} title={link.caption || 'Instagram post'} />
+            </li>
+          ))}
+        </ul>
+      ) : (
       <div className="mt-10 flex flex-col gap-3 md:flex-row md:gap-5">
         {COLUMNS.map((col) => (
           <div key={col.tiles.join()} className={`grid grid-cols-2 gap-3 md:flex md:flex-col md:gap-5 ${col.width} ${col.offset}`}>
@@ -75,6 +87,7 @@ export function InstagramSection({ links, copy }) {
           </div>
         ))}
       </div>
+      )}
     </section>
   );
 }
